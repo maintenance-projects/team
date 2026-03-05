@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>요약</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">요약</h1>
+        </div>
+
+        <!-- Status overview cards -->
+        <div class="stats-grid">
+            <div class="stat-card stat-card-todo" style="cursor: pointer;" onclick="openStatusModal('todoModal')">
+                <div class="stat-card-icon">
+                    <i class="fas fa-circle-dot"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-value" th:text="${todoCount != null} ? ${todoCount} : '0'">0</span>
+                    <span class="stat-card-label">할 일</span>
+                </div>
+            </div>
+            <div class="stat-card stat-card-progress" style="cursor: pointer;" onclick="openStatusModal('inProgressModal')">
+                <div class="stat-card-icon">
+                    <i class="fas fa-spinner"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-value" th:text="${inProgressCount != null} ? ${inProgressCount} : '0'">0</span>
+                    <span class="stat-card-label">진행 중</span>
+                </div>
+            </div>
+            <div class="stat-card stat-card-review" style="cursor: pointer;" onclick="openStatusModal('inReviewModal')">
+                <div class="stat-card-icon">
+                    <i class="fas fa-eye"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-value" th:text="${inReviewCount != null} ? ${inReviewCount} : '0'">0</span>
+                    <span class="stat-card-label">검토 중</span>
+                </div>
+            </div>
+            <div class="stat-card stat-card-done" style="cursor: pointer;" onclick="openStatusModal('doneModal')">
+                <div class="stat-card-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-value" th:text="${doneCount != null} ? ${doneCount} : '0'">0</span>
+                    <span class="stat-card-label">완료</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Modals -->
+        <!-- TODO Modal -->
+        <div class="modal-overlay" id="todoModal" onclick="closeModalOnOverlay(event, 'todoModal')">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span class="status-badge status-todo">TODO</span>
+                        할 일
+                        <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400;"
+                              th:text="'(' + (${todoCount} ?: '0') + ')'"></span>
+                    </h3>
+                    <button class="btn btn-ghost btn-sm" onclick="closeStatusModal('todoModal')" style="font-size: 18px; padding: 4px 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding-top: 12px;">
+                    <div th:if="${todoIssues != null and !#lists.isEmpty(todoIssues)}">
+                        <a th:each="issue : ${todoIssues}"
+                           th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="status-modal-issue-item">
+                            <span class="issue-type-icon"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : 'fa-bolt'))"></i>
+                            </span>
+                            <span class="issue-key" th:text="${issue.issueKey}" style="flex-shrink: 0;">PRJ-1</span>
+                            <span class="issue-title" th:text="${issue.title}" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue title</span>
+                            <span class="member-avatar" style="width: 24px; height: 24px; font-size: 11px; flex-shrink: 0;"
+                                  th:if="${issue.assignee != null}"
+                                  th:title="${issue.assignee.displayName ?: issue.assignee.username}">
+                                <span th:text="${#strings.substring(issue.assignee.displayName ?: issue.assignee.username, 0, 1).toUpperCase()}">U</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="empty-state-inline" th:unless="${todoIssues != null and !#lists.isEmpty(todoIssues)}">
+                        <p>할 일 상태의 업무가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IN_PROGRESS Modal -->
+        <div class="modal-overlay" id="inProgressModal" onclick="closeModalOnOverlay(event, 'inProgressModal')">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span class="status-badge status-in-progress">IN PROGRESS</span>
+                        진행 중
+                        <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400;"
+                              th:text="'(' + (${inProgressCount} ?: '0') + ')'"></span>
+                    </h3>
+                    <button class="btn btn-ghost btn-sm" onclick="closeStatusModal('inProgressModal')" style="font-size: 18px; padding: 4px 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding-top: 12px;">
+                    <div th:if="${inProgressIssues != null and !#lists.isEmpty(inProgressIssues)}">
+                        <a th:each="issue : ${inProgressIssues}"
+                           th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="status-modal-issue-item">
+                            <span class="issue-type-icon"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : 'fa-bolt'))"></i>
+                            </span>
+                            <span class="issue-key" th:text="${issue.issueKey}" style="flex-shrink: 0;">PRJ-1</span>
+                            <span class="issue-title" th:text="${issue.title}" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue title</span>
+                            <span class="member-avatar" style="width: 24px; height: 24px; font-size: 11px; flex-shrink: 0;"
+                                  th:if="${issue.assignee != null}"
+                                  th:title="${issue.assignee.displayName ?: issue.assignee.username}">
+                                <span th:text="${#strings.substring(issue.assignee.displayName ?: issue.assignee.username, 0, 1).toUpperCase()}">U</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="empty-state-inline" th:unless="${inProgressIssues != null and !#lists.isEmpty(inProgressIssues)}">
+                        <p>진행 중 상태의 업무가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IN_REVIEW Modal -->
+        <div class="modal-overlay" id="inReviewModal" onclick="closeModalOnOverlay(event, 'inReviewModal')">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span class="status-badge status-in-review">IN REVIEW</span>
+                        검토 중
+                        <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400;"
+                              th:text="'(' + (${inReviewCount} ?: '0') + ')'"></span>
+                    </h3>
+                    <button class="btn btn-ghost btn-sm" onclick="closeStatusModal('inReviewModal')" style="font-size: 18px; padding: 4px 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding-top: 12px;">
+                    <div th:if="${inReviewIssues != null and !#lists.isEmpty(inReviewIssues)}">
+                        <a th:each="issue : ${inReviewIssues}"
+                           th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="status-modal-issue-item">
+                            <span class="issue-type-icon"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : 'fa-bolt'))"></i>
+                            </span>
+                            <span class="issue-key" th:text="${issue.issueKey}" style="flex-shrink: 0;">PRJ-1</span>
+                            <span class="issue-title" th:text="${issue.title}" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue title</span>
+                            <span class="member-avatar" style="width: 24px; height: 24px; font-size: 11px; flex-shrink: 0;"
+                                  th:if="${issue.assignee != null}"
+                                  th:title="${issue.assignee.displayName ?: issue.assignee.username}">
+                                <span th:text="${#strings.substring(issue.assignee.displayName ?: issue.assignee.username, 0, 1).toUpperCase()}">U</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="empty-state-inline" th:unless="${inReviewIssues != null and !#lists.isEmpty(inReviewIssues)}">
+                        <p>검토 중 상태의 업무가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DONE Modal -->
+        <div class="modal-overlay" id="doneModal" onclick="closeModalOnOverlay(event, 'doneModal')">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span class="status-badge status-done">DONE</span>
+                        완료
+                        <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400;"
+                              th:text="'(' + (${doneCount} ?: '0') + ')'"></span>
+                    </h3>
+                    <button class="btn btn-ghost btn-sm" onclick="closeStatusModal('doneModal')" style="font-size: 18px; padding: 4px 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding-top: 12px;">
+                    <div th:if="${doneIssues != null and !#lists.isEmpty(doneIssues)}">
+                        <a th:each="issue : ${doneIssues}"
+                           th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="status-modal-issue-item">
+                            <span class="issue-type-icon"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : 'fa-bolt'))"></i>
+                            </span>
+                            <span class="issue-key" th:text="${issue.issueKey}" style="flex-shrink: 0;">PRJ-1</span>
+                            <span class="issue-title" th:text="${issue.title}" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue title</span>
+                            <span class="member-avatar" style="width: 24px; height: 24px; font-size: 11px; flex-shrink: 0;"
+                                  th:if="${issue.assignee != null}"
+                                  th:title="${issue.assignee.displayName ?: issue.assignee.username}">
+                                <span th:text="${#strings.substring(issue.assignee.displayName ?: issue.assignee.username, 0, 1).toUpperCase()}">U</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="empty-state-inline" th:unless="${doneIssues != null and !#lists.isEmpty(doneIssues)}">
+                        <p>완료 상태의 업무가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <!-- Active Sprint (for Scrum spaces) -->
+            <div class="summary-section" th:if="${currentSpace.spaceType != null and currentSpace.spaceType.name() == 'SCRUM'}">
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-bolt"></i> 활성 스프린트
+                        </h2>
+                    </div>
+                    <div class="section-card-body">
+                        <div th:if="${activeSprint != null}">
+                            <div class="sprint-info">
+                                <h3 th:text="${activeSprint.name}">Sprint 1</h3>
+                                <p class="sprint-goal" th:text="${activeSprint.goal}" th:if="${activeSprint.goal != null}">Sprint goal</p>
+                                <div class="sprint-dates">
+                                    <span><i class="fas fa-calendar-alt"></i>
+                                        <span th:text="${activeSprint.startDate}">Start</span> -
+                                        <span th:text="${activeSprint.endDate}">End</span>
+                                    </span>
+                                </div>
+                                <div class="sprint-progress-bar">
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill"
+                                             th:style="'width: ' + (${sprintProgress != null} ? ${sprintProgress} : '0') + '%'"></div>
+                                    </div>
+                                    <span class="progress-text"
+                                          th:text="${sprintProgress != null} ? ${sprintProgress} + '% 완료' : '0% 완료'">0% 완료</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="empty-state-inline" th:unless="${activeSprint != null}">
+                            <p>활성 스프린트가 없습니다. 백로그에서 스프린트를 시작하세요.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority distribution -->
+            <div class="summary-section">
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-signal"></i> 우선순위 분포
+                        </h2>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="priority-bars" th:if="${priorityDistribution != null}">
+                            <div class="priority-bar-item priority-bar-clickable" th:each="entry : ${priorityDistribution}"
+                                 th:data-modal-id="'priorityModal_' + ${entry.key.name()}"
+                                 style="cursor: pointer;"
+                                 onclick="openStatusModal(this.dataset.modalId)">
+                                <div class="priority-bar-label">
+                                    <span class="priority-badge"
+                                          th:classappend="'priority-' + ${#strings.toLowerCase(entry.key.name())}"
+                                          th:text="${entry.key}">MEDIUM</span>
+                                    <span class="priority-bar-count" th:text="${entry.value}">0</span>
+                                </div>
+                                <div class="priority-bar-track">
+                                    <div class="priority-bar-fill"
+                                         th:classappend="'priority-fill-' + ${#strings.toLowerCase(entry.key.name())}"
+                                         th:style="'width: ' + ${entry.value * 100 / (totalIssues != null and totalIssues > 0 ? totalIssues : 1)} + '%'"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="empty-state-inline" th:unless="${priorityDistribution != null}">
+                            <p>아직 업무가 없습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent issues -->
+            <div class="summary-section">
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-clock"></i> 최근 업무
+                        </h2>
+                        <a th:href="@{/spaces/{key}/issues(key=${currentSpace.spaceKey})}" class="section-link">전체 보기</a>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="recent-issues-list" th:if="${recentIssues != null and !#lists.isEmpty(recentIssues)}">
+                            <div class="recent-issue-item" th:each="issue : ${recentIssues}">
+                                <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                   class="recent-issue-link">
+                                    <span class="issue-type-icon"
+                                          th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                        <i class="fas"
+                                           th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                                    </span>
+                                    <span class="issue-key" th:text="${issue.issueKey}">PRJ-1</span>
+                                    <span class="issue-title" th:text="${issue.title}">Issue title</span>
+                                    <span class="status-badge"
+                                          th:classappend="'status-' + ${#strings.toLowerCase(#strings.replace(issue.status.name(), '_', '-'))}"
+                                          th:text="${#strings.replace(issue.status.name(), '_', ' ')}">TODO</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="empty-state-inline" th:unless="${recentIssues != null and !#lists.isEmpty(recentIssues)}">
+                            <p>아직 업무가 생성되지 않았습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team members -->
+            <div class="summary-section">
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-users"></i> 팀 멤버
+                        </h2>
+                        <a th:href="@{/spaces/{key}/settings(key=${currentSpace.spaceKey})}" class="section-link">관리</a>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="member-list" th:if="${members != null and !#lists.isEmpty(members)}">
+                            <div class="member-item" th:each="member : ${members}">
+                                <div class="member-avatar">
+                                    <span th:with="name=${member.user.displayName != null and member.user.displayName != '' ? member.user.displayName : (member.user.username != null and member.user.username != '' ? member.user.username : '?')}"
+                                          th:text="${#strings.substring(name, 0, 1).toUpperCase()}">U</span>
+                                </div>
+                                <div class="member-info">
+                                    <span class="member-name" th:text="${member.user.displayName != null and member.user.displayName != ''} ? ${member.user.displayName} : ${member.user.username}">User Name</span>
+                                    <span class="member-role" th:text="${member.role}">MEMBER</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="empty-state-inline" th:unless="${members != null and !#lists.isEmpty(members)}">
+                            <p>아직 팀 멤버가 없습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Modals -->
+        <th:block th:if="${issuesByPriority != null}" th:each="entry : ${issuesByPriority}">
+            <div class="modal-overlay priority-modal-overlay" th:id="'priorityModal_' + ${entry.key.name()}"
+                 th:data-modal-id="'priorityModal_' + ${entry.key.name()}"
+                 onclick="closeModalOnOverlay(event, this.dataset.modalId)">
+                <div class="modal" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <span class="priority-badge"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(entry.key.name())}"
+                                  th:text="${entry.key}">MEDIUM</span>
+                            <span>우선순위</span>
+                            <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400;"
+                                  th:text="'(' + ${#lists.size(entry.value)} + ')'"></span>
+                        </h3>
+                        <button class="btn btn-ghost btn-sm"
+                                th:data-modal-id="'priorityModal_' + ${entry.key.name()}"
+                                onclick="closeStatusModal(this.dataset.modalId)"
+                                style="font-size: 18px; padding: 4px 8px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="padding-top: 12px;">
+                        <a th:each="issue : ${entry.value}"
+                           th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="status-modal-issue-item">
+                            <span class="issue-type-icon"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : 'fa-bolt'))"></i>
+                            </span>
+                            <span class="issue-key" th:text="${issue.issueKey}" style="flex-shrink: 0;">PRJ-1</span>
+                            <span class="issue-title" th:text="${issue.title}" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue title</span>
+                            <span class="status-badge"
+                                  th:classappend="'status-' + ${#strings.toLowerCase(#strings.replace(issue.status.name(), '_', '-'))}"
+                                  th:text="${#strings.replace(issue.status.name(), '_', ' ')}"
+                                  style="flex-shrink: 0;">TODO</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </div>
+
+    <script layout:fragment="scripts">
+        function openStatusModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeStatusModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function closeModalOnOverlay(event, modalId) {
+            if (event.target === event.currentTarget) {
+                closeStatusModal(modalId);
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.show').forEach(function(modal) {
+                    modal.classList.remove('show');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

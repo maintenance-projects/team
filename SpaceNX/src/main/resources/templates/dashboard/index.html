@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>대시보드</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">대시보드</h1>
+            <a th:href="@{/spaces/create}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 새 스페이스 만들기
+            </a>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" th:if="${#lists.isEmpty(spaces)}">
+            <div class="empty-state-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h2 class="empty-state-title">SpaceNX에 오신 것을 환영합니다</h2>
+            <p class="empty-state-text">아직 스페이스가 없습니다. 첫 번째 스페이스를 만들어 프로젝트를 관리해보세요.</p>
+            <a th:href="@{/spaces/create}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> 첫 스페이스 만들기
+            </a>
+        </div>
+
+        <!-- Spaces grid -->
+        <div class="spaces-grid" th:unless="${#lists.isEmpty(spaces)}">
+            <div class="space-card" th:each="space : ${spaces}">
+                <a th:href="@{/spaces/{key}/summary(key=${space.spaceKey})}" class="space-card-link">
+                    <div class="space-card-header">
+                        <div class="space-card-icon">
+                            <span th:text="${#strings.substring(space.name, 0, 1).toUpperCase()}">S</span>
+                        </div>
+                        <span class="space-type-badge"
+                              th:text="${space.spaceType != null} ? ${space.spaceType} : 'N/A'"
+                              th:classappend="${space.spaceType != null and space.spaceType.name() == 'SCRUM'} ? 'badge-scrum' : 'badge-kanban'">SCRUM</span>
+                    </div>
+                    <div class="space-card-body">
+                        <h3 class="space-card-name" th:text="${space.name}">Space Name</h3>
+                        <span class="space-card-key" th:text="${space.spaceKey}">KEY</span>
+                        <p class="space-card-description"
+                           th:if="${space.description != null}"
+                           th:text="${#strings.length(space.description) > 100} ? ${#strings.substring(space.description, 0, 100) + '...'} : ${space.description}">
+                            Space description goes here...
+                        </p>
+                    </div>
+                    <div class="space-card-footer">
+                        <span class="space-card-key" th:text="${space.spaceKey}">KEY</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Create new space card -->
+            <div class="space-card space-card-create">
+                <a th:href="@{/spaces/create}" class="space-card-link create-link">
+                    <div class="create-card-content">
+                        <i class="fas fa-plus-circle create-card-icon"></i>
+                        <span class="create-card-text">새 스페이스 만들기</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

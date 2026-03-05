@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - SpaceNX</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-brand">
+                    <i class="fas fa-rocket auth-brand-icon"></i>
+                    <h1 class="auth-brand-text">SpaceNX</h1>
+                </div>
+                <p class="auth-subtitle">계정에 로그인하세요</p>
+            </div>
+
+            
+
+            
+
+            
+
+            <form action="/login" method="post" class="auth-form"><input type="hidden" name="_csrf" value="2oJ4X3eszrGinTfEu7qrG3AVnRfM6ZpS4Pmw4kLPWNbWWfm16-BJPkfP9tKPqlXxgpeffhJ0sHX_0Px_1pqD0Sb6b-KyYcmG"/>
+                <input type="hidden" name="_csrf" value="2oJ4X3eszrGinTfEu7qrG3AVnRfM6ZpS4Pmw4kLPWNbWWfm16-BJPkfP9tKPqlXxgpeffhJ0sHX_0Px_1pqD0Sb6b-KyYcmG">
+
+                <div class="form-group">
+                    <label for="username" class="form-label">사용자명</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="username" name="username" class="form-control"
+                               placeholder="사용자명을 입력하세요" required autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">비밀번호</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" name="password" class="form-control"
+                               placeholder="비밀번호를 입력하세요" required>
+                    </div>
+                </div>
+
+                <div class="form-group form-check-row">
+                    <label class="form-check">
+                        <input type="checkbox" name="remember-me" class="form-check-input">
+                        <span class="form-check-label">로그인 유지</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> 로그인
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>계정이 없으신가요?
+                    <a href="/register" class="auth-link">회원가입</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <header class="top-header" th:fragment="header">
+        <div class="header-left">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <ol class="breadcrumb-list">
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/dashboard}">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item" th:if="${currentSpace != null}">
+                        <a th:href="@{/spaces/{key}/summary(key=${currentSpace.spaceKey})}"
+                           th:text="${currentSpace.name}">Space Name</a>
+                    </li>
+                    <li class="breadcrumb-item active" th:if="${pageTitle != null}">
+                        <span th:text="${pageTitle}">Current Page</span>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+        <div class="header-right">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="검색..." class="search-input">
+            </div>
+            <div class="header-notifications">
+                <button class="icon-btn" title="알림">
+                    <i class="fas fa-bell"></i>
+                </button>
+            </div>
+            <button class="icon-btn theme-toggle-btn" id="themeToggle" title="테마 전환">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="user-dropdown" sec:authorize="isAuthenticated()">
+                <button class="user-dropdown-toggle" id="userDropdownToggle" data-dropdown-toggle="userDropdownMenu">
+                    <div class="user-avatar-small">
+                        <span sec:authentication="principal.username"
+                              th:text="${#strings.substring(#authentication.principal.username, 0, 1).toUpperCase()}">U</span>
+                    </div>
+                    <span class="user-display-name" sec:authentication="principal.username">User</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" id="userDropdownMenu">
+                    <a th:href="@{/settings}" class="dropdown-item">
+                        <i class="fas fa-cog"></i> 설정
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <form th:action="@{/logout}" method="post" class="dropdown-item-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="dropdown-item logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> 로그아웃
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+</body>
+</html>

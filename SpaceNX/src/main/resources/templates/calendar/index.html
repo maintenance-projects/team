@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>캘린더</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">캘린더</h1>
+            <div class="page-header-actions">
+                <div class="btn-group">
+                    <button class="btn btn-secondary btn-sm" id="calendarViewMonth" onclick="changeCalendarView('dayGridMonth')">
+                        <i class="fas fa-calendar"></i> 월간
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="calendarViewWeek" onclick="changeCalendarView('timeGridWeek')">
+                        <i class="fas fa-calendar-week"></i> 주간
+                    </button>
+                </div>
+                <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 업무 만들기
+                </a>
+            </div>
+        </div>
+
+        <div class="calendar-container">
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            const spaceKey = /*[[${currentSpace.spaceKey}]]*/ '';
+            let calendar;
+
+            function getCsrfToken() {
+                return document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            }
+
+            function getCsrfHeader() {
+                return document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            }
+
+            function formatDate(date) {
+                var d = new Date(date);
+                var year = d.getFullYear();
+                var month = String(d.getMonth() + 1).padStart(2, '0');
+                var day = String(d.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            }
+
+            function updateIssueDates(issueId, startDate, endDate, revertFunc) {
+                var headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[getCsrfHeader()] = getCsrfToken();
+
+                fetch('/spaces/' + spaceKey + '/calendar/update-dates', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        issueId: issueId,
+                        startDate: startDate,
+                        endDate: endDate
+                    })
+                })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (!data.success) {
+                        if (revertFunc) revertFunc();
+                        alert('날짜 업데이트 실패: ' + (data.error || '알 수 없는 오류'));
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error updating dates:', error);
+                    if (revertFunc) revertFunc();
+                    alert('업무 날짜 업데이트에 실패했습니다.');
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const calendarEl = document.getElementById('calendar');
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: ''
+                    },
+                    editable: true,
+                    eventResizableFromStart: false,
+                    events: function(info, successCallback, failureCallback) {
+                        fetch('/spaces/' + spaceKey + '/calendar/events?start=' +
+                              info.startStr + '&end=' + info.endStr)
+                            .then(response => response.json())
+                            .then(data => successCallback(data))
+                            .catch(error => failureCallback(error));
+                    },
+                    dateClick: function(info) {
+                        var clickedDate = info.dateStr;
+                        window.location.href = '/spaces/' + spaceKey + '/issues/new?startDate=' + clickedDate;
+                    },
+                    eventClick: function(info) {
+                        info.jsEvent.preventDefault();
+                        if (info.event.extendedProps && info.event.extendedProps.issueKey) {
+                            window.location.href = '/spaces/' + spaceKey + '/issues/' + info.event.extendedProps.issueKey;
+                        }
+                    },
+                    eventDrop: function(info) {
+                        var event = info.event;
+                        var newStart = formatDate(event.start);
+                        var newEnd = event.end ? formatDate(new Date(event.end.getTime() - 86400000)) : newStart;
+                        updateIssueDates(event.id, newStart, newEnd, info.revert);
+                    },
+                    eventResize: function(info) {
+                        var event = info.event;
+                        var newStart = formatDate(event.start);
+                        var newEnd = event.end ? formatDate(new Date(event.end.getTime() - 86400000)) : newStart;
+                        updateIssueDates(event.id, newStart, newEnd, info.revert);
+                    },
+                    eventClassNames: function(arg) {
+                        const classes = ['calendar-event'];
+                        if (arg.event.extendedProps && arg.event.extendedProps.status) {
+                            classes.push('calendar-event-' + arg.event.extendedProps.status.toLowerCase().replace('_', '-'));
+                        }
+                        return classes;
+                    },
+                    height: 'auto',
+                    dayMaxEvents: 3,
+                    firstDay: 1
+                });
+                calendar.render();
+            });
+
+            function changeCalendarView(viewName) {
+                if (calendar) {
+                    calendar.changeView(viewName);
+
+                    // Update button states
+                    document.getElementById('calendarViewMonth').className =
+                        viewName === 'dayGridMonth' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm';
+                    document.getElementById('calendarViewWeek').className =
+                        viewName === 'timeGridWeek' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm';
+                }
+            }
+            /*]]>*/
+        </script>
+    </div>
+</body>
+</html>

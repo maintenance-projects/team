@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>업무</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">업무</h1>
+            <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 업무 만들기
+            </a>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <form th:action="@{/spaces/{key}/issues(key=${currentSpace.spaceKey})}" method="get" class="filter-form">
+                <div class="filter-group">
+                    <select name="status" class="form-control form-select filter-select">
+                        <option value="">전체 상태</option>
+                        <option value="TODO" th:selected="${param.status != null and param.status[0] == 'TODO'}">할 일</option>
+                        <option value="IN_PROGRESS" th:selected="${param.status != null and param.status[0] == 'IN_PROGRESS'}">진행 중</option>
+                        <option value="IN_REVIEW" th:selected="${param.status != null and param.status[0] == 'IN_REVIEW'}">검토 중</option>
+                        <option value="DONE" th:selected="${param.status != null and param.status[0] == 'DONE'}">완료</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select name="type" class="form-control form-select filter-select">
+                        <option value="">전체 유형</option>
+                        <option value="BUG" th:selected="${param.type != null and param.type[0] == 'BUG'}">버그</option>
+                        <option value="STORY" th:selected="${param.type != null and param.type[0] == 'STORY'}">스토리</option>
+                        <option value="TASK" th:selected="${param.type != null and param.type[0] == 'TASK'}">작업</option>
+                        <option value="EPIC" th:selected="${param.type != null and param.type[0] == 'EPIC'}">에픽</option>
+                        <option value="SUBTASK" th:selected="${param.type != null and param.type[0] == 'SUBTASK'}">하위 작업</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select name="priority" class="form-control form-select filter-select">
+                        <option value="">전체 우선순위</option>
+                        <option value="HIGHEST" th:selected="${param.priority != null and param.priority[0] == 'HIGHEST'}">긴급</option>
+                        <option value="HIGH" th:selected="${param.priority != null and param.priority[0] == 'HIGH'}">높음</option>
+                        <option value="MEDIUM" th:selected="${param.priority != null and param.priority[0] == 'MEDIUM'}">보통</option>
+                        <option value="LOW" th:selected="${param.priority != null and param.priority[0] == 'LOW'}">낮음</option>
+                        <option value="LOWEST" th:selected="${param.priority != null and param.priority[0] == 'LOWEST'}">매우 낮음</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select name="assigneeId" class="form-control form-select filter-select">
+                        <option value="">전체 담당자</option>
+                        <option th:each="member : ${members}"
+                                th:value="${member.user.id}"
+                                th:text="${member.user.displayName != null and member.user.displayName != ''} ? ${member.user.displayName} : ${member.user.username}"
+                                th:selected="${param.assigneeId != null and param.assigneeId[0] == member.user.id.toString()}">Member</option>
+                    </select>
+                </div>
+                <div class="filter-group filter-group-search">
+                    <div class="input-with-icon">
+                        <i class="fas fa-search input-icon"></i>
+                        <input type="text" name="search" class="form-control" placeholder="업무 검색..."
+                               th:value="${param.search != null} ? ${param.search[0]} : ''">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-filter"></i> 필터
+                    </button>
+                    <a th:href="@{/spaces/{key}/issues(key=${currentSpace.spaceKey})}" class="btn btn-ghost">
+                        <i class="fas fa-times"></i> 초기화
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Issues table -->
+        <div class="table-wrapper" th:if="${issues != null and !#lists.isEmpty(issues)}">
+            <table class="data-table issue-table">
+                <thead>
+                    <tr>
+                        <th class="col-type">유형</th>
+                        <th class="col-key">키</th>
+                        <th class="col-title">제목</th>
+                        <th class="col-status">상태</th>
+                        <th class="col-priority">우선순위</th>
+                        <th class="col-assignee">담당자</th>
+                        <th class="col-date">마감일</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="issue : ${issues}" class="issue-row">
+                        <td class="col-type">
+                            <span class="issue-type-icon"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}"
+                                  th:title="${issue.issueType}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                            </span>
+                        </td>
+                        <td class="col-key">
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="issue-key-link" th:text="${issue.issueKey}">PRJ-1</a>
+                        </td>
+                        <td class="col-title">
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="issue-title-link" th:text="${issue.title}">Issue Title</a>
+                        </td>
+                        <td class="col-status">
+                            <span class="status-badge"
+                                  th:classappend="'status-' + ${#strings.toLowerCase(#strings.replace(issue.status.name(), '_', '-'))}"
+                                  th:text="${#strings.replace(issue.status.name(), '_', ' ')}">TODO</span>
+                        </td>
+                        <td class="col-priority">
+                            <span class="priority-badge"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                  th:text="${issue.priority}">MEDIUM</span>
+                        </td>
+                        <td class="col-assignee">
+                            <div class="assignee-cell" th:if="${issue.assignee != null}">
+                                <div class="member-avatar member-avatar-xs">
+                                    <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                </div>
+                                <span th:text="${issue.assignee.displayName != null and issue.assignee.displayName != ''} ? ${issue.assignee.displayName} : ${issue.assignee.username}">User</span>
+                            </div>
+                            <span th:unless="${issue.assignee != null}" class="text-muted">담당자 없음</span>
+                        </td>
+                        <td class="col-date">
+                            <span th:if="${issue.dueDate != null}"
+                                  th:text="${#temporals.format(issue.dueDate, 'yyyy-MM-dd')}"
+                                  th:classappend="${issue.isOverdue} ? 'text-danger'">2025-01-01</span>
+                            <span th:unless="${issue.dueDate != null}" class="text-muted">-</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" th:unless="${issues != null and !#lists.isEmpty(issues)}">
+            <div class="empty-state-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h2 class="empty-state-title">업무를 찾을 수 없습니다</h2>
+            <p class="empty-state-text" th:if="${param.status != null or param.type != null or param.priority != null or param.search != null}">
+                필터 조건에 맞는 업무가 없습니다. 필터를 초기화하거나 새 업무를 만드세요.
+            </p>
+            <p class="empty-state-text" th:unless="${param.status != null or param.type != null or param.priority != null or param.search != null}">
+                아직 업무가 생성되지 않았습니다. 첫 번째 업무를 만들어보세요.
+            </p>
+            <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 첫 업무 만들기
+            </a>
+        </div>
+    </div>
+</body>
+</html>

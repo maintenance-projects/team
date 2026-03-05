@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="${issue.issueKey} + ' - ' + ${issue.title}">업무 상세</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+</head>
+<body>
+    <div layout:fragment="content">
+        <style>
+            .field-display { cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 2px 4px; margin: -2px -4px; border-radius: 4px; transition: background-color 0.15s; }
+            .field-display:hover { background-color: rgba(0,0,0,0.05); }
+            .edit-hint { font-size: 0.65rem; color: #aaa; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+            .field-display:hover .edit-hint { opacity: 1; }
+            .field-edit { width: 100%; }
+            .field-edit .form-control-sm { padding: 4px 8px; font-size: 0.875rem; }
+            .edit-actions { display: flex; gap: 4px; margin-top: 6px; }
+            .edit-actions .btn { padding: 2px 8px; font-size: 0.75rem; }
+            .title-field .field-display { padding: 4px 6px; margin: -4px -6px; }
+            .desc-field .field-display { padding: 8px; margin: 0; min-height: 60px; border: 1px solid transparent; }
+            .desc-field .field-display:hover { border-color: #e0e0e0; }
+            .desc-field .field-edit { margin-top: 0; }
+            .checkbox-group-inline { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+            .checkbox-group-inline .form-check { margin: 0; display: flex; align-items: center; gap: 4px; }
+        </style>
+
+        <!-- Issue header -->
+        <div class="issue-detail-header">
+            <div class="issue-detail-breadcrumb">
+                <a th:href="@{/spaces/{key}/issues(key=${currentSpace.spaceKey})}" class="breadcrumb-back">
+                    <i class="fas fa-arrow-left"></i> 업무 목록으로
+                </a>
+            </div>
+            <div class="issue-detail-title-row">
+                <span class="issue-type-icon issue-type-icon-lg"
+                      th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                    <i class="fas"
+                       th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                </span>
+                <h1 class="issue-detail-key" th:text="${issue.issueKey}">PRJ-1</h1>
+            </div>
+            <!-- Inline editable title -->
+            <div class="title-field">
+                <div class="field-display" onclick="startEdit(this)">
+                    <h2 class="issue-detail-title" style="margin:0;" th:text="${issue.title}">Issue Title</h2>
+                    <i class="fas fa-pencil-alt edit-hint"></i>
+                </div>
+                <div class="field-edit" style="display:none;">
+                    <input type="text" class="form-control" id="titleInput"
+                           th:value="${issue.title}"
+                           onkeydown="if(event.key==='Enter'){saveTextField('title','titleInput');} if(event.key==='Escape'){cancelEdit(this);}">
+                    <div class="edit-actions">
+                        <button class="btn btn-primary btn-sm" onclick="saveTextField('title','titleInput')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="issue-detail-layout">
+            <!-- Left panel - Main content -->
+            <div class="issue-detail-main">
+                <!-- Description (inline editable) -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h3 class="section-title">설명</h3>
+                    </div>
+                    <div class="section-card-body desc-field">
+                        <div class="field-display" onclick="startEdit(this)">
+                            <div th:if="${issue.description != null and !#strings.isEmpty(issue.description)}">
+                                <div class="issue-description" th:utext="${issue.description}">
+                                    Issue description goes here...
+                                </div>
+                            </div>
+                            <p class="text-muted" th:unless="${issue.description != null and !#strings.isEmpty(issue.description)}">
+                                클릭하여 설명을 추가하세요.
+                            </p>
+                            <i class="fas fa-pencil-alt edit-hint"></i>
+                        </div>
+                        <div class="field-edit" style="display:none;">
+                            <textarea class="form-control form-textarea" id="descInput" rows="8"
+                                      placeholder="업무에 대한 상세 정보를 입력하세요..."
+                                      th:text="${issue.description}"></textarea>
+                            <div class="edit-actions">
+                                <button class="btn btn-primary btn-sm" onclick="saveTextField('description','descInput')">
+                                    <i class="fas fa-check"></i> 저장
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="cancelEdit(this)">
+                                    <i class="fas fa-times"></i> 취소
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status transition buttons -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h3 class="section-title">상태 변경</h3>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="status-workflow">
+                            <div class="status-step"
+                                 th:classappend="${issue.status.name() == 'TODO'} ? 'status-step-active'">
+                                <form th:action="@{/spaces/{key}/issues/{issueKey}/status(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="status" value="TODO">
+                                    <button type="submit" class="status-workflow-btn status-btn-todo"
+                                            th:disabled="${issue.status.name() == 'TODO'}">
+                                        <i class="fas fa-circle-dot"></i> 할 일
+                                    </button>
+                                </form>
+                            </div>
+                            <i class="fas fa-chevron-right status-arrow"></i>
+                            <div class="status-step"
+                                 th:classappend="${issue.status.name() == 'IN_PROGRESS'} ? 'status-step-active'">
+                                <form th:action="@{/spaces/{key}/issues/{issueKey}/status(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="status" value="IN_PROGRESS">
+                                    <button type="submit" class="status-workflow-btn status-btn-in-progress"
+                                            th:disabled="${issue.status.name() == 'IN_PROGRESS'}">
+                                        <i class="fas fa-spinner"></i> 진행 중
+                                    </button>
+                                </form>
+                            </div>
+                            <i class="fas fa-chevron-right status-arrow"></i>
+                            <div class="status-step"
+                                 th:classappend="${issue.status.name() == 'IN_REVIEW'} ? 'status-step-active'">
+                                <form th:action="@{/spaces/{key}/issues/{issueKey}/status(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="status" value="IN_REVIEW">
+                                    <button type="submit" class="status-workflow-btn status-btn-in-review"
+                                            th:disabled="${issue.status.name() == 'IN_REVIEW'}">
+                                        <i class="fas fa-eye"></i> 검토 중
+                                    </button>
+                                </form>
+                            </div>
+                            <i class="fas fa-chevron-right status-arrow"></i>
+                            <div class="status-step"
+                                 th:classappend="${issue.status.name() == 'DONE'} ? 'status-step-active'">
+                                <form th:action="@{/spaces/{key}/issues/{issueKey}/status(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="status" value="DONE">
+                                    <button type="submit" class="status-workflow-btn status-btn-done"
+                                            th:disabled="${issue.status.name() == 'DONE'}">
+                                        <i class="fas fa-check-circle"></i> 완료
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attachments section -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h3 class="section-title">
+                            <i class="fas fa-paperclip"></i> 첨부파일
+                            <span class="count-badge" th:if="${attachments != null}"
+                                  th:text="${#lists.size(attachments)}">0</span>
+                        </h3>
+                    </div>
+                    <div class="section-card-body">
+                        <!-- Attachment list -->
+                        <div class="attachment-list" th:if="${attachments != null and !#lists.isEmpty(attachments)}">
+                            <div class="attachment-item" th:each="att : ${attachments}">
+                                <div class="attachment-icon">
+                                    <i class="fas" th:classappend="${att.fileIcon}"></i>
+                                </div>
+                                <div class="attachment-info">
+                                    <a class="attachment-name"
+                                       th:href="@{/spaces/{key}/issues/{issueKey}/attachments/{id}/download(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey}, id=${att.id})}"
+                                       th:text="${att.originalFilename}">filename.pdf</a>
+                                    <div class="attachment-meta">
+                                        <span th:text="${att.fileSizeFormatted}">2.5 MB</span>
+                                        <span class="attachment-separator">|</span>
+                                        <span th:text="${att.uploader.displayName != null and att.uploader.displayName != ''} ? ${att.uploader.displayName} : ${att.uploader.username}">User</span>
+                                        <span class="attachment-separator">|</span>
+                                        <span th:text="${att.createdAt != null} ? ${#temporals.format(att.createdAt, 'yyyy-MM-dd HH:mm')} : ''">2025-01-01</span>
+                                    </div>
+                                </div>
+                                <div class="attachment-actions">
+                                    <a class="btn btn-sm btn-outline"
+                                       th:href="@{/spaces/{key}/issues/{issueKey}/attachments/{id}/download(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey}, id=${att.id})}"
+                                       title="다운로드">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <form th:action="@{/spaces/{key}/issues/{issueKey}/attachments/{id}/delete(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey}, id=${att.id})}"
+                                          method="post" class="inline-form"
+                                          onsubmit="return confirm('이 첨부파일을 삭제하시겠습니까?');">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <button type="submit" class="btn btn-sm btn-outline btn-danger-outline" title="삭제">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="empty-state-inline" th:unless="${attachments != null and !#lists.isEmpty(attachments)}">
+                            <p>아직 첨부파일이 없습니다.</p>
+                        </div>
+
+                        <!-- Upload form -->
+                        <div class="attachment-upload-wrapper">
+                            <form th:action="@{/spaces/{key}/issues/{issueKey}/attachments(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                  method="post" enctype="multipart/form-data" class="attachment-upload-form">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <div class="form-group">
+                                    <label class="file-upload-label">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span>업로드할 파일을 선택하세요</span>
+                                        <input type="file" name="files" multiple class="file-upload-input"
+                                               onchange="updateFileLabel(this)">
+                                    </label>
+                                    <div class="file-selected-info" id="fileSelectedInfo" style="display:none;">
+                                        <span id="fileCount">0</span>개 파일 선택됨
+                                    </div>
+                                </div>
+                                <div class="form-actions form-actions-right">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-upload"></i> 파일 업로드
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments section -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h3 class="section-title">
+                            <i class="fas fa-comments"></i> 댓글
+                            <span class="count-badge" th:if="${comments != null}"
+                                  th:text="${#lists.size(comments)}">0</span>
+                        </h3>
+                    </div>
+                    <div class="section-card-body">
+                        <!-- Comment list -->
+                        <div class="comment-list" th:if="${comments != null and !#lists.isEmpty(comments)}">
+                            <div class="comment-item" th:each="comment : ${comments}">
+                                <div class="comment-avatar">
+                                    <div class="member-avatar">
+                                        <span th:with="aName=${comment.author.displayName != null and comment.author.displayName != '' ? comment.author.displayName : comment.author.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                    </div>
+                                </div>
+                                <div class="comment-body">
+                                    <div class="comment-header">
+                                        <span class="comment-author"
+                                              th:text="${comment.author.displayName != null and comment.author.displayName != ''} ? ${comment.author.displayName} : ${comment.author.username}">User</span>
+                                        <span class="comment-date"
+                                              th:text="${comment.createdAt != null} ? ${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')} : ''">2025-01-01 12:00</span>
+                                    </div>
+                                    <div class="comment-content" th:utext="${@mentionUtils.processMentions(comment.content)}">
+                                        Comment content goes here...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="empty-state-inline" th:unless="${comments != null and !#lists.isEmpty(comments)}">
+                            <p>아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요.</p>
+                        </div>
+
+                        <!-- Add comment form -->
+                        <div class="comment-form-wrapper">
+                            <form th:action="@{/spaces/{key}/issues/{issueKey}/comments(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                  method="post" class="comment-form">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <div class="form-group mention-input-wrapper">
+                                    <textarea id="commentTextarea" name="content" class="form-control form-textarea"
+                                              th:data-space-key="${currentSpace.spaceKey}"
+                                              placeholder="댓글을 작성하세요... (@를 입력하면 멤버를 멘션할 수 있습니다)" rows="3" required></textarea>
+                                    <div id="mentionDropdown" class="mention-dropdown" style="display:none;"></div>
+                                </div>
+                                <div class="form-actions form-actions-right">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-paper-plane"></i> 댓글 추가
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right panel - Details sidebar -->
+            <div class="issue-detail-sidebar">
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <h3 class="section-title">상세 정보</h3>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="detail-list">
+                            <!-- 상태 -->
+                            <div class="detail-item">
+                                <span class="detail-label">상태</span>
+                                <span class="status-badge"
+                                      th:classappend="'status-' + ${#strings.toLowerCase(#strings.replace(issue.status.name(), '_', '-'))}"
+                                      th:text="${#strings.replace(issue.status.name(), '_', ' ')}">TODO</span>
+                            </div>
+
+                            <!-- 유형 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">유형</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="detail-value">
+                                        <span class="issue-type-icon"
+                                              th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                            <i class="fas"
+                                               th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                                        </span>
+                                        <span th:text="${issue.issueType}">TASK</span>
+                                    </span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <select class="form-control form-control-sm"
+                                            onchange="saveField('issueType', this.value)">
+                                        <option value="BUG" th:selected="${issue.issueType.name() == 'BUG'}">버그</option>
+                                        <option value="STORY" th:selected="${issue.issueType.name() == 'STORY'}">스토리</option>
+                                        <option value="TASK" th:selected="${issue.issueType.name() == 'TASK'}">작업</option>
+                                        <option value="EPIC" th:selected="${issue.issueType.name() == 'EPIC'}">에픽</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 우선순위 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">우선순위</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="priority-badge"
+                                          th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                          th:text="${issue.priority}">MEDIUM</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <select class="form-control form-control-sm"
+                                            onchange="saveField('priority', this.value)">
+                                        <option value="HIGHEST" th:selected="${issue.priority.name() == 'HIGHEST'}">긴급</option>
+                                        <option value="HIGH" th:selected="${issue.priority.name() == 'HIGH'}">높음</option>
+                                        <option value="MEDIUM" th:selected="${issue.priority.name() == 'MEDIUM'}">보통</option>
+                                        <option value="LOW" th:selected="${issue.priority.name() == 'LOW'}">낮음</option>
+                                        <option value="LOWEST" th:selected="${issue.priority.name() == 'LOWEST'}">매우 낮음</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 담당자 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">담당자</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <div class="detail-value" th:if="${issue.assignee != null}">
+                                        <div class="assignee-cell">
+                                            <div class="member-avatar member-avatar-xs">
+                                                <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                            </div>
+                                            <span th:text="${issue.assignee.displayName != null and issue.assignee.displayName != ''} ? ${issue.assignee.displayName} : ${issue.assignee.username}">User</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-muted" th:unless="${issue.assignee != null}">담당자 없음</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <select class="form-control form-control-sm"
+                                            onchange="saveIdField('assigneeId', this.value)">
+                                        <option value="">담당자 없음</option>
+                                        <option th:each="member : ${members}"
+                                                th:value="${member.user.id}"
+                                                th:selected="${issue.assignee != null and issue.assignee.id == member.user.id}"
+                                                th:text="${member.user.displayName != null and member.user.displayName != ''} ? ${member.user.displayName} : ${member.user.username}">Member</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 보고자 (read-only) -->
+                            <div class="detail-item">
+                                <span class="detail-label">보고자</span>
+                                <div class="detail-value" th:if="${issue.reporter != null}">
+                                    <div class="assignee-cell">
+                                        <div class="member-avatar member-avatar-xs">
+                                            <span th:with="aName=${issue.reporter.displayName != null and issue.reporter.displayName != '' ? issue.reporter.displayName : issue.reporter.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                        </div>
+                                        <span th:text="${issue.reporter.displayName != null and issue.reporter.displayName != ''} ? ${issue.reporter.displayName} : ${issue.reporter.username}">User</span>
+                                    </div>
+                                </div>
+                                <span class="text-muted" th:unless="${issue.reporter != null}">-</span>
+                            </div>
+
+                            <!-- 스프린트 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">스프린트</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="detail-value" th:if="${issue.sprint != null}" th:text="${issue.sprint.name}">Sprint 1</span>
+                                    <span class="text-muted" th:unless="${issue.sprint != null}">백로그</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <select class="form-control form-control-sm"
+                                            onchange="saveIdField('sprintId', this.value)">
+                                        <option value="">백로그</option>
+                                        <option th:each="sprint : ${sprints}"
+                                                th:value="${sprint.id}"
+                                                th:selected="${issue.sprint != null and issue.sprint.id == sprint.id}"
+                                                th:text="${sprint.name}">Sprint 1</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 에픽 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">에픽</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="detail-value" th:if="${issue.epic != null}">
+                                        <a class="detail-link"
+                                           th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.epic.issueKey})}"
+                                           th:text="${issue.epic.issueKey} + ' - ' + ${issue.epic.title}"
+                                           onclick="event.stopPropagation();">EPIC-1 - Epic Title</a>
+                                    </span>
+                                    <span class="text-muted" th:unless="${issue.epic != null}">없음</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <select class="form-control form-control-sm"
+                                            onchange="saveIdField('epicId', this.value)">
+                                        <option value="">없음</option>
+                                        <option th:each="epic : ${epics}"
+                                                th:value="${epic.id}"
+                                                th:selected="${issue.epic != null and issue.epic.id == epic.id}"
+                                                th:text="${epic.issueKey} + ' - ' + ${epic.title}">EPIC-1 - Epic Title</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 라벨 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">라벨</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <div class="detail-value labels-list" th:if="${issue.labels != null and !#lists.isEmpty(issue.labels)}">
+                                        <span class="label-badge" th:each="label : ${issue.labels}"
+                                              th:style="'background-color: ' + ${label.color}"
+                                              th:text="${label.name}">Label</span>
+                                    </div>
+                                    <span class="text-muted" th:unless="${issue.labels != null and !#lists.isEmpty(issue.labels)}">없음</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;" th:if="${labels != null and !#lists.isEmpty(labels)}">
+                                    <div class="checkbox-group-inline">
+                                        <label class="form-check" th:each="label : ${labels}">
+                                            <input type="checkbox" class="form-check-input label-checkbox"
+                                                   th:value="${label.id}"
+                                                   th:id="'label-' + ${label.id}">
+                                            <span class="label-badge" th:style="'background-color: ' + ${label.color}"
+                                                  th:text="${label.name}">Label</span>
+                                        </label>
+                                    </div>
+                                    <div class="edit-actions">
+                                        <button class="btn btn-primary btn-sm" onclick="saveLabels()">
+                                            <i class="fas fa-check"></i> 저장
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(this)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 스토리 포인트 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">스토리 포인트</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="detail-value"
+                                          th:text="${issue.storyPoints != null} ? ${issue.storyPoints} : '-'">-</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <input type="number" class="form-control form-control-sm" id="storyPointsInput"
+                                           th:value="${issue.storyPoints}" min="0" max="100" placeholder="예: 3"
+                                           onkeydown="if(event.key==='Enter'){saveNumberField('storyPoints','storyPointsInput');} if(event.key==='Escape'){cancelEdit(this);}">
+                                    <div class="edit-actions">
+                                        <button class="btn btn-primary btn-sm" onclick="saveNumberField('storyPoints','storyPointsInput')">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(this)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 시작일 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">시작일</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="detail-value"
+                                          th:text="${issue.startDate != null} ? ${#temporals.format(issue.startDate, 'yyyy-MM-dd')} : '-'">-</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <input type="date" class="form-control form-control-sm" id="startDateInput"
+                                           th:value="${issue.startDate != null} ? ${#temporals.format(issue.startDate, 'yyyy-MM-dd')} : ''"
+                                           onchange="saveDateField('startDate','startDateInput')">
+                                </div>
+                            </div>
+
+                            <!-- 마감일 (inline editable) -->
+                            <div class="detail-item">
+                                <span class="detail-label">마감일</span>
+                                <div class="field-display" onclick="startEdit(this)">
+                                    <span class="detail-value"
+                                          th:classappend="${issue.isOverdue} ? 'text-danger'"
+                                          th:text="${issue.dueDate != null} ? ${#temporals.format(issue.dueDate, 'yyyy-MM-dd')} : '-'">-</span>
+                                    <i class="fas fa-pencil-alt edit-hint"></i>
+                                </div>
+                                <div class="field-edit" style="display:none;">
+                                    <input type="date" class="form-control form-control-sm" id="dueDateInput"
+                                           th:value="${issue.dueDate != null} ? ${#temporals.format(issue.dueDate, 'yyyy-MM-dd')} : ''"
+                                           onchange="saveDateField('dueDate','dueDateInput')">
+                                </div>
+                            </div>
+
+                            <!-- 생성일 (read-only) -->
+                            <div class="detail-item">
+                                <span class="detail-label">생성일</span>
+                                <span class="detail-value"
+                                      th:text="${issue.createdAt != null} ? ${#temporals.format(issue.createdAt, 'yyyy-MM-dd HH:mm')} : '-'">-</span>
+                            </div>
+
+                            <!-- 수정일 (read-only) -->
+                            <div class="detail-item">
+                                <span class="detail-label">수정일</span>
+                                <span class="detail-value"
+                                      th:text="${issue.updatedAt != null} ? ${#temporals.format(issue.updatedAt, 'yyyy-MM-dd HH:mm')} : '-'">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            var updateUrl = [[@{/spaces/{key}/issues/{ik}/update(key=${currentSpace.spaceKey}, ik=${issue.issueKey})}]];
+            var issueLabelIds = /*[[${issueLabelIds}]]*/ [];
+        </script>
+        <script>
+            // Initialize label checkboxes
+            document.addEventListener('DOMContentLoaded', function() {
+                issueLabelIds.forEach(function(id) {
+                    var cb = document.getElementById('label-' + id);
+                    if (cb) cb.checked = true;
+                });
+                // Restore scroll position after inline edit save
+                var scrollPos = sessionStorage.getItem('scrollPos');
+                if (scrollPos) {
+                    window.scrollTo(0, parseInt(scrollPos));
+                    sessionStorage.removeItem('scrollPos');
+                }
+            });
+
+            var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            function startEdit(displayEl) {
+                var parent = displayEl.parentElement;
+                displayEl.style.display = 'none';
+                var editEl = parent.querySelector('.field-edit');
+                if (editEl) {
+                    editEl.style.display = '';
+                    var input = editEl.querySelector('input, select, textarea');
+                    if (input) input.focus();
+                }
+            }
+
+            function cancelEdit(el) {
+                var parent = el.closest('.detail-item') || el.closest('.title-field') || el.closest('.desc-field') || el.closest('.section-card-body');
+                if (!parent) return;
+                var display = parent.querySelector('.field-display');
+                var edit = parent.querySelector('.field-edit');
+                if (display) display.style.display = '';
+                if (edit) edit.style.display = 'none';
+            }
+
+            function saveField(fieldName, value) {
+                var data = {};
+                data[fieldName] = value;
+                doSave(data);
+            }
+
+            function saveIdField(fieldName, value) {
+                var data = {};
+                data[fieldName] = value === '' ? 0 : parseInt(value);
+                doSave(data);
+            }
+
+            function saveTextField(fieldName, inputId) {
+                var input = document.getElementById(inputId);
+                var data = {};
+                data[fieldName] = input.value;
+                doSave(data);
+            }
+
+            function saveNumberField(fieldName, inputId) {
+                var input = document.getElementById(inputId);
+                var data = {};
+                data[fieldName] = input.value === '' ? null : parseInt(input.value);
+                doSave(data);
+            }
+
+            function saveDateField(fieldName, inputId) {
+                var input = document.getElementById(inputId);
+                var data = {};
+                data[fieldName] = input.value === '' ? null : input.value;
+                doSave(data);
+            }
+
+            function saveLabels() {
+                var checkboxes = document.querySelectorAll('.label-checkbox');
+                var ids = [];
+                checkboxes.forEach(function(cb) {
+                    if (cb.checked) ids.push(parseInt(cb.value));
+                });
+                doSave({ labelIds: ids });
+            }
+
+            function doSave(data) {
+                sessionStorage.setItem('scrollPos', window.scrollY.toString());
+                fetch(updateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert('수정 실패: ' + (result.error || '알 수 없는 오류'));
+                        sessionStorage.removeItem('scrollPos');
+                    }
+                })
+                .catch(function(err) {
+                    alert('수정에 실패했습니다.');
+                    sessionStorage.removeItem('scrollPos');
+                    console.error(err);
+                });
+            }
+
+            // Close edit mode on Escape for selects
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    var openEdits = document.querySelectorAll('.field-edit');
+                    openEdits.forEach(function(edit) {
+                        if (edit.style.display !== 'none') {
+                            cancelEdit(edit);
+                        }
+                    });
+                }
+            });
+
+            function updateFileLabel(input) {
+                var info = document.getElementById('fileSelectedInfo');
+                var count = document.getElementById('fileCount');
+                if (input.files.length > 0) {
+                    count.textContent = input.files.length;
+                    info.style.display = 'block';
+                } else {
+                    info.style.display = 'none';
+                }
+            }
+        </script>
+    </th:block>
+</body>
+</html>

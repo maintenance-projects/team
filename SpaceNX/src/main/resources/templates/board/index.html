@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>보드</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">보드</h1>
+            <div class="page-header-actions">
+                <!-- Sprint selector for Scrum spaces -->
+                <div class="sprint-selector" th:if="${currentSpace.spaceType != null and currentSpace.spaceType.name() == 'SCRUM'}">
+                    <select id="sprintSelect" class="form-control form-select"
+                            onchange="window.location.href=this.value">
+                        <option value="" disabled>스프린트 선택</option>
+                        <option th:each="sprint : ${sprints}"
+                                th:value="@{/spaces/{key}/board?sprintId={sprintId}(key=${currentSpace.spaceKey}, sprintId=${sprint.id})}"
+                                th:text="${sprint.name}"
+                                th:selected="${activeSprint != null and activeSprint.id == sprint.id}">Sprint</option>
+                    </select>
+                </div>
+                <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 업무 만들기
+                </a>
+            </div>
+        </div>
+
+        <!-- Active sprint info -->
+        <div class="board-sprint-info" th:if="${activeSprint != null}">
+            <span class="sprint-name" th:text="${activeSprint.name}">Sprint 1</span>
+            <span class="sprint-dates" th:if="${activeSprint.startDate != null}">
+                <i class="fas fa-calendar-alt"></i>
+                <span th:text="${#temporals.format(activeSprint.startDate, 'MM/dd')}">01/01</span> -
+                <span th:text="${activeSprint.endDate != null} ? ${#temporals.format(activeSprint.endDate, 'MM/dd')} : '종료일 없음'">01/14</span>
+            </span>
+        </div>
+
+        <!-- Kanban board -->
+        <div class="board-container">
+            <!-- TODO column -->
+            <div class="board-column" data-status="TODO">
+                <div class="board-column-header">
+                    <h3 class="board-column-title">
+                        <span class="status-dot status-dot-todo"></span>
+                        할 일
+                    </h3>
+                    <span class="board-column-count"
+                          th:text="${todoIssues != null} ? ${#lists.size(todoIssues)} : '0'">0</span>
+                </div>
+                <div class="board-column-body" id="board-todo"
+                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                    <div class="board-card" th:each="issue : ${todoIssues}"
+                         th:attr="data-issue-id=${issue.id},data-status='TODO'"
+                         draggable="true" ondragstart="handleDragStart(event)">
+                        <div class="board-card-header">
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="board-card-key" th:text="${issue.issueKey}">PRJ-1</a>
+                            <span class="issue-type-icon issue-type-icon-sm"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                            </span>
+                        </div>
+                        <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="board-card-title" th:text="${issue.title}">Issue Title</a>
+                        <div class="board-card-footer">
+                            <span class="priority-badge priority-badge-sm"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                  th:title="${issue.priority}">
+                                <i class="fas fa-arrow-up" th:if="${issue.priority.name() == 'HIGHEST' or issue.priority.name() == 'HIGH'}"></i>
+                                <i class="fas fa-equals" th:if="${issue.priority.name() == 'MEDIUM'}"></i>
+                                <i class="fas fa-arrow-down" th:if="${issue.priority.name() == 'LOW' or issue.priority.name() == 'LOWEST'}"></i>
+                            </span>
+                            <span class="board-card-points" th:if="${issue.storyPoints != null}"
+                                  th:text="${issue.storyPoints}">3</span>
+                            <div class="board-card-assignee" th:if="${issue.assignee != null}">
+                                <div class="member-avatar member-avatar-xs">
+                                    <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="board-empty" th:if="${todoIssues == null or #lists.isEmpty(todoIssues)}">
+                        <p>업무 없음</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IN PROGRESS column -->
+            <div class="board-column" data-status="IN_PROGRESS">
+                <div class="board-column-header">
+                    <h3 class="board-column-title">
+                        <span class="status-dot status-dot-in-progress"></span>
+                        진행 중
+                    </h3>
+                    <span class="board-column-count"
+                          th:text="${inProgressIssues != null} ? ${#lists.size(inProgressIssues)} : '0'">0</span>
+                </div>
+                <div class="board-column-body" id="board-in-progress"
+                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                    <div class="board-card" th:each="issue : ${inProgressIssues}"
+                         th:attr="data-issue-id=${issue.id},data-status='IN_PROGRESS'"
+                         draggable="true" ondragstart="handleDragStart(event)">
+                        <div class="board-card-header">
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="board-card-key" th:text="${issue.issueKey}">PRJ-1</a>
+                            <span class="issue-type-icon issue-type-icon-sm"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                            </span>
+                        </div>
+                        <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="board-card-title" th:text="${issue.title}">Issue Title</a>
+                        <div class="board-card-footer">
+                            <span class="priority-badge priority-badge-sm"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                  th:title="${issue.priority}">
+                                <i class="fas fa-arrow-up" th:if="${issue.priority.name() == 'HIGHEST' or issue.priority.name() == 'HIGH'}"></i>
+                                <i class="fas fa-equals" th:if="${issue.priority.name() == 'MEDIUM'}"></i>
+                                <i class="fas fa-arrow-down" th:if="${issue.priority.name() == 'LOW' or issue.priority.name() == 'LOWEST'}"></i>
+                            </span>
+                            <span class="board-card-points" th:if="${issue.storyPoints != null}"
+                                  th:text="${issue.storyPoints}">3</span>
+                            <div class="board-card-assignee" th:if="${issue.assignee != null}">
+                                <div class="member-avatar member-avatar-xs">
+                                    <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="board-empty" th:if="${inProgressIssues == null or #lists.isEmpty(inProgressIssues)}">
+                        <p>업무 없음</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IN REVIEW column -->
+            <div class="board-column" data-status="IN_REVIEW">
+                <div class="board-column-header">
+                    <h3 class="board-column-title">
+                        <span class="status-dot status-dot-in-review"></span>
+                        검토 중
+                    </h3>
+                    <span class="board-column-count"
+                          th:text="${inReviewIssues != null} ? ${#lists.size(inReviewIssues)} : '0'">0</span>
+                </div>
+                <div class="board-column-body" id="board-in-review"
+                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                    <div class="board-card" th:each="issue : ${inReviewIssues}"
+                         th:attr="data-issue-id=${issue.id},data-status='IN_REVIEW'"
+                         draggable="true" ondragstart="handleDragStart(event)">
+                        <div class="board-card-header">
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="board-card-key" th:text="${issue.issueKey}">PRJ-1</a>
+                            <span class="issue-type-icon issue-type-icon-sm"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                            </span>
+                        </div>
+                        <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="board-card-title" th:text="${issue.title}">Issue Title</a>
+                        <div class="board-card-footer">
+                            <span class="priority-badge priority-badge-sm"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                  th:title="${issue.priority}">
+                                <i class="fas fa-arrow-up" th:if="${issue.priority.name() == 'HIGHEST' or issue.priority.name() == 'HIGH'}"></i>
+                                <i class="fas fa-equals" th:if="${issue.priority.name() == 'MEDIUM'}"></i>
+                                <i class="fas fa-arrow-down" th:if="${issue.priority.name() == 'LOW' or issue.priority.name() == 'LOWEST'}"></i>
+                            </span>
+                            <span class="board-card-points" th:if="${issue.storyPoints != null}"
+                                  th:text="${issue.storyPoints}">3</span>
+                            <div class="board-card-assignee" th:if="${issue.assignee != null}">
+                                <div class="member-avatar member-avatar-xs">
+                                    <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="board-empty" th:if="${inReviewIssues == null or #lists.isEmpty(inReviewIssues)}">
+                        <p>업무 없음</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DONE column -->
+            <div class="board-column" data-status="DONE">
+                <div class="board-column-header">
+                    <h3 class="board-column-title">
+                        <span class="status-dot status-dot-done"></span>
+                        완료
+                    </h3>
+                    <span class="board-column-count"
+                          th:text="${doneIssues != null} ? ${#lists.size(doneIssues)} : '0'">0</span>
+                </div>
+                <div class="board-column-body" id="board-done"
+                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                    <div class="board-card" th:each="issue : ${doneIssues}"
+                         th:attr="data-issue-id=${issue.id},data-status='DONE'"
+                         draggable="true" ondragstart="handleDragStart(event)">
+                        <div class="board-card-header">
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="board-card-key" th:text="${issue.issueKey}">PRJ-1</a>
+                            <span class="issue-type-icon issue-type-icon-sm"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                            </span>
+                        </div>
+                        <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                           class="board-card-title" th:text="${issue.title}">Issue Title</a>
+                        <div class="board-card-footer">
+                            <span class="priority-badge priority-badge-sm"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                  th:title="${issue.priority}">
+                                <i class="fas fa-arrow-up" th:if="${issue.priority.name() == 'HIGHEST' or issue.priority.name() == 'HIGH'}"></i>
+                                <i class="fas fa-equals" th:if="${issue.priority.name() == 'MEDIUM'}"></i>
+                                <i class="fas fa-arrow-down" th:if="${issue.priority.name() == 'LOW' or issue.priority.name() == 'LOWEST'}"></i>
+                            </span>
+                            <span class="board-card-points" th:if="${issue.storyPoints != null}"
+                                  th:text="${issue.storyPoints}">3</span>
+                            <div class="board-card-assignee" th:if="${issue.assignee != null}">
+                                <div class="member-avatar member-avatar-xs">
+                                    <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="board-empty" th:if="${doneIssues == null or #lists.isEmpty(doneIssues)}">
+                        <p>업무 없음</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            const spaceKey = /*[[${currentSpace.spaceKey}]]*/ '';
+            const csrfToken = /*[[${_csrf.token}]]*/ '';
+            const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+
+            function handleDragStart(e) {
+                e.dataTransfer.setData('text/plain', e.target.dataset.issueId);
+                e.target.classList.add('board-card-dragging');
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add('board-column-drag-over');
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('board-column-drag-over');
+                const issueId = e.dataTransfer.getData('text/plain');
+                const newStatus = e.currentTarget.closest('.board-column').dataset.status;
+
+                // Send status update to server
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                };
+                headers[csrfHeader] = csrfToken;
+
+                fetch('/spaces/' + spaceKey + '/board/move', {
+                    method: 'POST',
+                    headers: headers,
+                    body: 'issueId=' + issueId + '&status=' + newStatus
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    }
+                });
+            }
+
+            // Remove drag-over class when leaving
+            document.querySelectorAll('.board-column-body').forEach(col => {
+                col.addEventListener('dragleave', function(e) {
+                    this.classList.remove('board-column-drag-over');
+                });
+            });
+
+            // Remove dragging class when drag ends
+            document.querySelectorAll('.board-card').forEach(card => {
+                card.addEventListener('dragend', function() {
+                    this.classList.remove('board-card-dragging');
+                });
+            });
+            /*]]>*/
+        </script>
+    </div>
+</body>
+</html>

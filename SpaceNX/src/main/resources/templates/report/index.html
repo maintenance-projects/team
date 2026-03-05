@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>보고서</title>
+    <style>
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 16px;
+        }
+        .report-card {
+            background: #fff;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .report-card .section-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+        .report-card .section-card-body {
+            padding: 20px;
+        }
+        .report-card .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary, #1e293b);
+        }
+        .report-card .section-title i {
+            margin-right: 8px;
+            color: var(--primary, #2563eb);
+        }
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+        .chart-container-wide {
+            position: relative;
+            height: 320px;
+        }
+        .report-card-wide {
+            grid-column: span 2;
+        }
+        .empty-state-inline {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-secondary, #64748b);
+        }
+        .empty-state-inline p {
+            font-size: 14px;
+        }
+        @media (max-width: 900px) {
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+            .report-card-wide {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">보고서</h1>
+        </div>
+
+        <div class="reports-grid">
+            <!-- Status distribution chart -->
+            <div class="section-card report-card">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-chart-pie"></i> 상태 분포
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority distribution chart -->
+            <div class="section-card report-card">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-chart-bar"></i> 우선순위 분포
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assignee workload chart -->
+            <div class="section-card report-card">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-users"></i> 담당자별 작업량
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container">
+                        <canvas id="assigneeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sprint progress (if active sprint) -->
+            <div class="section-card report-card">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-bolt"></i> 스프린트 진행률
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container" id="sprintChartContainer">
+                        <canvas id="sprintChart"></canvas>
+                    </div>
+                    <div class="empty-state-inline" id="noSprintMessage" style="display: none;">
+                        <p>진행률을 표시할 활성 스프린트가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Burndown Chart -->
+            <div class="section-card report-card report-card-wide">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-chart-line"></i> 번다운 차트
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container-wide" id="burndownChartContainer">
+                        <canvas id="burndownChart"></canvas>
+                    </div>
+                    <div class="empty-state-inline" id="noBurndownMessage" style="display: none;">
+                        <p>번다운 차트를 표시할 날짜가 있는 활성 스프린트가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Burnup Chart -->
+            <div class="section-card report-card report-card-wide">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-chart-area"></i> 번업 차트
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container-wide" id="burnupChartContainer">
+                        <canvas id="burnupChart"></canvas>
+                    </div>
+                    <div class="empty-state-inline" id="noBurnupMessage" style="display: none;">
+                        <p>번업 차트를 표시할 날짜가 있는 활성 스프린트가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Velocity Chart -->
+            <div class="section-card report-card report-card-wide">
+                <div class="section-card-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-tachometer-alt"></i> 속도 차트
+                    </h2>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container-wide" id="velocityChartContainer">
+                        <canvas id="velocityChart"></canvas>
+                    </div>
+                    <div class="empty-state-inline" id="noVelocityMessage" style="display: none;">
+                        <p>속도 차트에 표시할 스프린트 데이터가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var spaceKey = /*[[${currentSpace.spaceKey}]]*/ '';
+
+            document.addEventListener('DOMContentLoaded', function() {
+                loadReportData();
+            });
+
+            function loadReportData() {
+                fetch('/spaces/' + spaceKey + '/reports/data')
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) { renderCharts(data); })
+                    .catch(function(error) {
+                        console.error('Failed to load report data:', error);
+                    });
+            }
+
+            function renderCharts(data) {
+                // 1. Status distribution (doughnut)
+                if (data.statusDistribution) {
+                    var statusCtx = document.getElementById('statusChart').getContext('2d');
+                    new Chart(statusCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(data.statusDistribution).map(function(s) { return s.replace('_', ' '); }),
+                            datasets: [{
+                                data: Object.values(data.statusDistribution),
+                                backgroundColor: ['#94a3b8', '#3b82f6', '#f59e0b', '#22c55e'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 16, usePointStyle: true }
+                                }
+                            },
+                            cutout: '60%'
+                        }
+                    });
+                }
+
+                // 2. Priority distribution (bar)
+                if (data.priorityDistribution) {
+                    var priorityCtx = document.getElementById('priorityChart').getContext('2d');
+                    new Chart(priorityCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.priorityDistribution),
+                            datasets: [{
+                                label: '업무',
+                                data: Object.values(data.priorityDistribution),
+                                backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#94a3b8'],
+                                borderWidth: 0,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1 },
+                                    grid: { color: '#f1f5f9' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // 3. Assignee workload (horizontal bar)
+                if (data.assigneeWorkload) {
+                    var assigneeCtx = document.getElementById('assigneeChart').getContext('2d');
+                    new Chart(assigneeCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.assigneeWorkload),
+                            datasets: [{
+                                label: '할당된 업무',
+                                data: Object.values(data.assigneeWorkload),
+                                backgroundColor: '#2563eb',
+                                borderWidth: 0,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1 },
+                                    grid: { color: '#f1f5f9' }
+                                },
+                                y: {
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // 4. Sprint progress (doughnut)
+                if (data.sprintProgress && data.sprintProgress.hasActiveSprint) {
+                    var sprintCtx = document.getElementById('sprintChart').getContext('2d');
+                    new Chart(sprintCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['완료', '진행 중', '할 일'],
+                            datasets: [{
+                                data: [
+                                    data.sprintProgress.done || 0,
+                                    data.sprintProgress.inProgress || 0,
+                                    data.sprintProgress.todo || 0
+                                ],
+                                backgroundColor: ['#22c55e', '#3b82f6', '#94a3b8'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 16, usePointStyle: true }
+                                }
+                            },
+                            cutout: '60%'
+                        }
+                    });
+                } else {
+                    document.getElementById('sprintChartContainer').style.display = 'none';
+                    document.getElementById('noSprintMessage').style.display = 'flex';
+                }
+
+                // 5. Burndown Chart (line)
+                if (data.burndown && data.burndown.hasData) {
+                    var burndownCtx = document.getElementById('burndownChart').getContext('2d');
+                    var unitLabel = data.burndown.useStoryPoints ? '스토리 포인트' : '업무';
+                    new Chart(burndownCtx, {
+                        type: 'line',
+                        data: {
+                            labels: data.burndown.labels,
+                            datasets: [
+                                {
+                                    label: '이상적',
+                                    data: data.burndown.idealLine,
+                                    borderColor: '#94a3b8',
+                                    borderDash: [6, 4],
+                                    borderWidth: 2,
+                                    pointRadius: 0,
+                                    fill: false,
+                                    tension: 0
+                                },
+                                {
+                                    label: '실제 남은 작업',
+                                    data: data.burndown.actualLine,
+                                    borderColor: '#ef4444',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                                    borderWidth: 2,
+                                    pointRadius: 3,
+                                    pointBackgroundColor: '#ef4444',
+                                    fill: true,
+                                    tension: 0.2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 16, usePointStyle: true }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': ' + context.parsed.y + ' ' + unitLabel;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '남은 ' + unitLabel
+                                    },
+                                    grid: { color: '#f1f5f9' }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: '스프린트 일수'
+                                    },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    document.getElementById('burndownChartContainer').style.display = 'none';
+                    document.getElementById('noBurndownMessage').style.display = 'flex';
+                }
+
+                // 6. Burnup Chart (line)
+                if (data.burnup && data.burnup.hasData) {
+                    var burnupCtx = document.getElementById('burnupChart').getContext('2d');
+                    var burnupUnitLabel = data.burnup.useStoryPoints ? '스토리 포인트' : '업무';
+                    new Chart(burnupCtx, {
+                        type: 'line',
+                        data: {
+                            labels: data.burnup.labels,
+                            datasets: [
+                                {
+                                    label: '전체 범위',
+                                    data: data.burnup.scopeLine,
+                                    borderColor: '#94a3b8',
+                                    borderDash: [6, 4],
+                                    borderWidth: 2,
+                                    pointRadius: 0,
+                                    fill: false,
+                                    tension: 0
+                                },
+                                {
+                                    label: '완료된 작업',
+                                    data: data.burnup.completedLine,
+                                    borderColor: '#22c55e',
+                                    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                                    borderWidth: 2,
+                                    pointRadius: 3,
+                                    pointBackgroundColor: '#22c55e',
+                                    fill: true,
+                                    tension: 0.2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 16, usePointStyle: true }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': ' + context.parsed.y + ' ' + burnupUnitLabel;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: burnupUnitLabel
+                                    },
+                                    grid: { color: '#f1f5f9' }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: '스프린트 일수'
+                                    },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    document.getElementById('burnupChartContainer').style.display = 'none';
+                    document.getElementById('noBurnupMessage').style.display = 'flex';
+                }
+
+                // 7. Velocity Chart (bar)
+                if (data.velocity && data.velocity.hasData) {
+                    var velocityCtx = document.getElementById('velocityChart').getContext('2d');
+                    new Chart(velocityCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.velocity.sprintNames,
+                            datasets: [
+                                {
+                                    label: '계획',
+                                    data: data.velocity.totalPoints,
+                                    backgroundColor: 'rgba(37, 99, 235, 0.25)',
+                                    borderColor: '#2563eb',
+                                    borderWidth: 1,
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: '완료',
+                                    data: data.velocity.completedPoints,
+                                    backgroundColor: '#2563eb',
+                                    borderWidth: 0,
+                                    borderRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 16, usePointStyle: true }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '스토리 포인트 / 업무'
+                                    },
+                                    ticks: { stepSize: 1 },
+                                    grid: { color: '#f1f5f9' }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: '스프린트'
+                                    },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    document.getElementById('velocityChartContainer').style.display = 'none';
+                    document.getElementById('noVelocityMessage').style.display = 'flex';
+                }
+            }
+            /*]]>*/
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>타임라인</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">타임라인</h1>
+            <div class="page-header-actions">
+                <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 업무 만들기
+                </a>
+            </div>
+        </div>
+
+        <div class="tl-wrapper" id="timelineWrapper">
+            <div class="tl-sidebar" id="tlSidebar">
+                <div class="tl-sidebar-head">업무</div>
+                <div class="tl-sidebar-body" id="tlSidebarBody"></div>
+            </div>
+            <div class="tl-chart" id="tlChart">
+                <div class="tl-chart-head" id="tlChartHead">
+                    <div class="tl-months" id="tlMonths"></div>
+                </div>
+                <div class="tl-today-line" id="tlTodayLine"></div>
+                <div class="tl-chart-body" id="tlChartBody">
+                    <div class="tl-loading">
+                        <i class="fas fa-spinner fa-spin"></i> 타임라인 로딩 중...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="empty-state" id="timelineEmpty" style="display: none;">
+            <div class="empty-state-icon"><i class="fas fa-bars-progress"></i></div>
+            <h2 class="empty-state-title">날짜가 설정된 업무가 없습니다</h2>
+            <p class="empty-state-text">시작일과 마감일이 있는 업무를 만들면 타임라인에 표시됩니다.</p>
+            <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 업무 만들기
+            </a>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var spaceKey = /*[[${currentSpace.spaceKey}]]*/ '';
+            var TL = {};
+
+            function getCsrfToken() {
+                return document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            }
+            function getCsrfHeader() {
+                return document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            }
+            function fmtDate(d) {
+                var dd = new Date(d);
+                return dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+            }
+            function addDays(d, n) {
+                var r = new Date(d); r.setDate(r.getDate()+n); return r;
+            }
+            function daysBetween(a, b) {
+                return Math.round((b - a) / 86400000);
+            }
+
+            function postIssueDates(issueId, startDate, endDate, onOk, onErr) {
+                var h = {'Content-Type':'application/json'};
+                h[getCsrfHeader()] = getCsrfToken();
+                fetch('/spaces/'+spaceKey+'/timeline/update-dates',{method:'POST',headers:h,body:JSON.stringify({issueId:issueId,startDate:startDate,endDate:endDate})})
+                .then(function(r){return r.json()})
+                .then(function(d){d.success?onOk&&onOk(d):onErr&&onErr(d.error||'오류')})
+                .catch(function(){onErr&&onErr('네트워크 오류')});
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                fetch('/spaces/'+spaceKey+'/timeline/data')
+                .then(function(r){return r.json()})
+                .then(function(d){renderTimeline(d)})
+                .catch(function(e){
+                    console.error(e);
+                    document.getElementById('tlChartBody').innerHTML='<div class="tl-loading" style="color:var(--danger)">타임라인 데이터를 불러오지 못했습니다.</div>';
+                });
+            });
+
+            function renderTimeline(data) {
+                var wrapper = document.getElementById('timelineWrapper');
+                var empty = document.getElementById('timelineEmpty');
+                if (!data.issues || data.issues.length === 0) {
+                    wrapper.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                // Date range: align to 1st of start month, end of last month
+                var rawStart = new Date(data.startDate);
+                var rawEnd = new Date(data.endDate);
+                var rangeStart = new Date(rawStart.getFullYear(), rawStart.getMonth(), 1);
+                var rangeEnd = new Date(rawEnd.getFullYear(), rawEnd.getMonth()+1, 0); // last day of end month
+                var totalDays = daysBetween(rangeStart, rangeEnd) + 1;
+
+                TL.start = rangeStart;
+                TL.totalDays = totalDays;
+                TL.dayWidth = 100 / totalDays; // percent per day
+
+                // Build month headers
+                var monthsEl = document.getElementById('tlMonths');
+                monthsEl.innerHTML = '';
+
+                var cur = new Date(rangeStart);
+                var monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+                while (cur <= rangeEnd) {
+                    var y = cur.getFullYear();
+                    var m = cur.getMonth();
+                    var daysInMonth = new Date(y, m+1, 0).getDate();
+                    var monthStart = new Date(y, m, 1);
+                    var offsetDays = daysBetween(rangeStart, monthStart);
+                    var visibleDays = Math.min(daysInMonth, totalDays - offsetDays);
+
+                    var mEl = document.createElement('div');
+                    mEl.className = 'tl-month';
+                    mEl.style.width = (visibleDays / totalDays * 100) + '%';
+                    mEl.textContent = y + '년 ' + monthNames[m];
+                    monthsEl.appendChild(mEl);
+
+                    cur = new Date(y, m+1, 1);
+                }
+
+                // Today line
+                var today = new Date(); today.setHours(0,0,0,0);
+                var todayLine = document.getElementById('tlTodayLine');
+                if (today >= rangeStart && today <= rangeEnd) {
+                    var todayOff = daysBetween(rangeStart, today);
+                    todayLine.style.left = (todayOff / totalDays * 100) + '%';
+                    todayLine.style.display = 'block';
+                } else {
+                    todayLine.style.display = 'none';
+                }
+
+                // Render sidebar + chart rows
+                var sidebarBody = document.getElementById('tlSidebarBody');
+                var chartBody = document.getElementById('tlChartBody');
+                sidebarBody.innerHTML = '';
+                chartBody.innerHTML = '';
+
+                // Grid lines (per week)
+                var gridCur = new Date(rangeStart);
+                while (gridCur <= rangeEnd) {
+                    var dow2 = gridCur.getDay();
+                    if (dow2 === 1) { // Monday
+                        var gLine = document.createElement('div');
+                        gLine.className = 'tl-grid-line';
+                        gLine.style.left = (daysBetween(rangeStart, gridCur) / totalDays * 100) + '%';
+                        chartBody.appendChild(gLine);
+                    }
+                    gridCur = addDays(gridCur, 1);
+                }
+
+                var statusColors = {
+                    'TODO':'#3b82f6','IN_PROGRESS':'#f59e0b','IN_REVIEW':'#8b5cf6','DONE':'#22c55e'
+                };
+                var typeIcons = {
+                    'BUG':'fa-bug','STORY':'fa-bookmark','TASK':'fa-check-square','EPIC':'fa-bolt'
+                };
+
+                data.issues.forEach(function(issue) {
+                    // Sidebar row
+                    var sRow = document.createElement('div');
+                    sRow.className = 'tl-sidebar-row';
+
+                    var typeIcon = document.createElement('i');
+                    typeIcon.className = 'fas ' + (typeIcons[issue.issueType] || 'fa-tasks');
+                    typeIcon.classList.add('tl-type-icon', 'tl-type-' + (issue.issueType||'task').toLowerCase());
+                    sRow.appendChild(typeIcon);
+
+                    var sLink = document.createElement('a');
+                    sLink.href = '/spaces/'+spaceKey+'/issues/'+issue.issueKey;
+                    sLink.className = 'tl-sidebar-link';
+
+                    var sKey = document.createElement('span');
+                    sKey.className = 'tl-sidebar-key';
+                    sKey.textContent = issue.issueKey;
+                    sLink.appendChild(sKey);
+
+                    var sTitle = document.createElement('span');
+                    sTitle.className = 'tl-sidebar-title';
+                    sTitle.textContent = issue.title;
+                    sLink.appendChild(sTitle);
+
+                    sRow.appendChild(sLink);
+                    sidebarBody.appendChild(sRow);
+
+                    // Chart row
+                    var cRow = document.createElement('div');
+                    cRow.className = 'tl-chart-row';
+
+                    var issueStart = new Date(issue.startDate || issue.dueDate);
+                    var issueEnd = new Date(issue.dueDate || issue.startDate);
+                    var offDays = daysBetween(rangeStart, issueStart);
+                    var dur = daysBetween(issueStart, issueEnd) + 1;
+                    if (dur < 1) dur = 1;
+
+                    var bar = document.createElement('div');
+                    bar.className = 'tl-bar';
+                    bar.style.left = (offDays / totalDays * 100) + '%';
+                    bar.style.width = (dur / totalDays * 100) + '%';
+                    bar.style.backgroundColor = statusColors[issue.status] || '#3b82f6';
+
+                    var barLabel = document.createElement('span');
+                    barLabel.className = 'tl-bar-label';
+                    barLabel.textContent = issue.issueKey;
+                    bar.appendChild(barLabel);
+
+                    // Date labels (shown on drag/resize)
+                    var startLabel = document.createElement('span');
+                    startLabel.className = 'tl-bar-date tl-bar-date-start';
+                    bar.appendChild(startLabel);
+                    var endLabel = document.createElement('span');
+                    endLabel.className = 'tl-bar-date tl-bar-date-end';
+                    bar.appendChild(endLabel);
+
+                    bar.title = issue.issueKey + ': ' + issue.title + '\n' +
+                        (issue.startDate||'?') + ' ~ ' + (issue.dueDate||'?') +
+                        (issue.assignee ? '\n담당: '+issue.assignee : '');
+
+                    bar.setAttribute('data-issue-id', issue.id);
+                    bar.setAttribute('data-start', issue.startDate || issue.dueDate);
+                    bar.setAttribute('data-end', issue.dueDate || issue.startDate);
+
+                    // Resize handle
+                    var rh = document.createElement('div');
+                    rh.className = 'tl-bar-handle tl-bar-handle-r';
+                    bar.appendChild(rh);
+                    var lh = document.createElement('div');
+                    lh.className = 'tl-bar-handle tl-bar-handle-l';
+                    bar.appendChild(lh);
+
+                    setupDrag(bar, cRow, issue);
+                    setupResize(rh, bar, cRow, issue, 'right');
+                    setupResize(lh, bar, cRow, issue, 'left');
+
+                    cRow.appendChild(bar);
+                    chartBody.appendChild(cRow);
+                });
+
+                // Sync scroll between sidebar and chart
+                var chart = document.getElementById('tlChart');
+                chartBody.addEventListener('scroll', function() {
+                    // vertical sync not needed - handled by flex
+                });
+            }
+
+            /* --- Show/hide date labels on bar --- */
+            function updateBarDates(bar) {
+                var l = parseFloat(bar.style.left);
+                var w = parseFloat(bar.style.width);
+                var sd = Math.round((l/100)*TL.totalDays);
+                var dur = Math.max(1, Math.round((w/100)*TL.totalDays));
+                var s = fmtDate(addDays(TL.start, sd));
+                var e = fmtDate(addDays(TL.start, sd+dur-1));
+                bar.querySelector('.tl-bar-date-start').textContent = s;
+                bar.querySelector('.tl-bar-date-end').textContent = e;
+            }
+            function showBarDates(bar) {
+                bar.classList.add('tl-show-dates');
+                updateBarDates(bar);
+            }
+            function hideBarDates(bar) {
+                bar.classList.remove('tl-show-dates');
+            }
+
+            /* --- Drag (move bar) --- */
+            function setupDrag(bar, container, issue) {
+                var dragging = false, startX, origLeft;
+                bar.addEventListener('mousedown', function(e) {
+                    if (e.target.classList.contains('tl-bar-handle')) return;
+                    dragging = true; startX = e.clientX;
+                    origLeft = parseFloat(bar.style.left);
+                    bar.classList.add('tl-dragging');
+                    showBarDates(bar);
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', function(e) {
+                    if (!dragging) return;
+                    var w = container.offsetWidth || 1;
+                    var dx = (e.clientX - startX) / w * 100;
+                    bar.style.left = Math.max(0, Math.min(100-parseFloat(bar.style.width), origLeft+dx))+'%';
+                    updateBarDates(bar);
+                });
+                document.addEventListener('mouseup', function() {
+                    if (!dragging) return;
+                    dragging = false; bar.classList.remove('tl-dragging');
+                    hideBarDates(bar);
+                    saveDates(bar, issue);
+                });
+            }
+
+            /* --- Resize (left or right handle) --- */
+            function setupResize(handle, bar, container, issue, side) {
+                var resizing = false, startX, origLeft, origWidth;
+                handle.addEventListener('mousedown', function(e) {
+                    resizing = true; startX = e.clientX;
+                    origLeft = parseFloat(bar.style.left);
+                    origWidth = parseFloat(bar.style.width);
+                    bar.classList.add('tl-dragging');
+                    showBarDates(bar);
+                    e.preventDefault(); e.stopPropagation();
+                });
+                document.addEventListener('mousemove', function(e) {
+                    if (!resizing) return;
+                    var w = container.offsetWidth || 1;
+                    var dx = (e.clientX - startX) / w * 100;
+                    var minW = (1/TL.totalDays)*100;
+                    if (side === 'right') {
+                        bar.style.width = Math.max(minW, Math.min(100-origLeft, origWidth+dx))+'%';
+                    } else {
+                        var newLeft = Math.max(0, origLeft+dx);
+                        var newWidth = origWidth - (newLeft - origLeft);
+                        if (newWidth < minW) return;
+                        bar.style.left = newLeft+'%';
+                        bar.style.width = newWidth+'%';
+                    }
+                    updateBarDates(bar);
+                });
+                document.addEventListener('mouseup', function() {
+                    if (!resizing) return;
+                    resizing = false; bar.classList.remove('tl-dragging');
+                    hideBarDates(bar);
+                    saveDates(bar, issue);
+                });
+            }
+
+            function saveDates(bar, issue) {
+                var l = parseFloat(bar.style.left);
+                var w = parseFloat(bar.style.width);
+                var sd = Math.round((l/100)*TL.totalDays);
+                var dur = Math.max(1, Math.round((w/100)*TL.totalDays));
+                var s = fmtDate(addDays(TL.start, sd));
+                var e = fmtDate(addDays(TL.start, sd+dur-1));
+                postIssueDates(issue.id, s, e, null, function(err){
+                    alert('날짜 업데이트 실패: '+err);
+                    location.reload();
+                });
+            }
+            /*]]>*/
+        </script>
+    </div>
+</body>
+</html>

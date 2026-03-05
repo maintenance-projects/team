@@ -1,0 +1,22 @@
+version: '3.8'
+
+# SpaceNX shares the GitNX PostgreSQL database (postgres-container on port 5432).
+# If GitNX's DB is already running, no need to start this.
+# This file is provided as a fallback if GitNX's DB is not available.
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres-container
+    environment:
+      POSTGRES_DB: gitnx
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: "ultari12#$"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    external: true

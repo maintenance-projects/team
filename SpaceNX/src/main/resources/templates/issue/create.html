@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>업무 만들기</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">업무 만들기</h1>
+        </div>
+
+        <div class="form-card">
+            <form th:action="@{/spaces/{key}/issues(key=${currentSpace.spaceKey})}" method="post"
+                  th:object="${createIssueRequest}" class="form-standard">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <div class="auth-alert auth-alert-error" th:if="${error}">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span th:text="${error}">오류가 발생했습니다.</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label for="issueType" class="form-label">업무 유형 <span class="required">*</span></label>
+                        <select id="issueType" th:field="*{issueType}" class="form-control form-select" required>
+                            <option value="">유형 선택...</option>
+                            <option value="BUG">버그</option>
+                            <option value="STORY">스토리</option>
+                            <option value="TASK">작업</option>
+                            <option value="EPIC">에픽</option>
+                        </select>
+                        <span class="form-error" th:if="${#fields.hasErrors('issueType')}" th:errors="*{issueType}">유형 오류</span>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label for="priority" class="form-label">우선순위 <span class="required">*</span></label>
+                        <select id="priority" th:field="*{priority}" class="form-control form-select" required>
+                            <option value="">우선순위 선택...</option>
+                            <option value="HIGHEST">긴급</option>
+                            <option value="HIGH">높음</option>
+                            <option value="MEDIUM">보통</option>
+                            <option value="LOW">낮음</option>
+                            <option value="LOWEST">매우 낮음</option>
+                        </select>
+                        <span class="form-error" th:if="${#fields.hasErrors('priority')}" th:errors="*{priority}">우선순위 오류</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="title" class="form-label">제목 <span class="required">*</span></label>
+                    <input type="text" id="title" th:field="*{title}" class="form-control"
+                           placeholder="업무에 대한 간략한 요약을 입력하세요" required>
+                    <span class="form-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">제목 오류</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="description" class="form-label">설명</label>
+                    <textarea id="description" th:field="*{description}" class="form-control form-textarea"
+                              placeholder="업무에 대한 상세 정보를 입력하세요..." rows="8"></textarea>
+                    <span class="form-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">설명 오류</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label for="assigneeId" class="form-label">담당자</label>
+                        <select id="assigneeId" th:field="*{assigneeId}" class="form-control form-select">
+                            <option value="">담당자 없음</option>
+                            <option th:each="member : ${members}"
+                                    th:value="${member.user.id}"
+                                    th:text="${member.user.displayName != null and member.user.displayName != ''} ? ${member.user.displayName} : ${member.user.username}">Member</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label for="storyPoints" class="form-label">스토리 포인트</label>
+                        <input type="number" id="storyPoints" th:field="*{storyPoints}" class="form-control"
+                               placeholder="예: 3" min="0" max="100">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label for="epicId" class="form-label">에픽</label>
+                        <select id="epicId" th:field="*{epicId}" class="form-control form-select">
+                            <option value="">없음</option>
+                            <option th:each="epic : ${epics}"
+                                    th:value="${epic.id}"
+                                    th:text="${epic.issueKey} + ' - ' + ${epic.title}">EPIC-1 - Epic Title</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label for="sprintId" class="form-label">스프린트</label>
+                        <select id="sprintId" th:field="*{sprintId}" class="form-control form-select">
+                            <option value="">백로그</option>
+                            <option th:each="sprint : ${sprints}"
+                                    th:value="${sprint.id}"
+                                    th:text="${sprint.name}">Sprint 1</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label for="startDate" class="form-label">시작일</label>
+                        <input type="date" id="startDate" th:field="*{startDate}" class="form-control">
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label for="dueDate" class="form-label">마감일</label>
+                        <input type="date" id="dueDate" th:field="*{dueDate}" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group" th:if="${labels != null and !#lists.isEmpty(labels)}">
+                    <label class="form-label">라벨</label>
+                    <div class="checkbox-group">
+                        <label class="form-check" th:each="label : ${labels}">
+                            <input type="checkbox" th:field="*{labelIds}" th:value="${label.id}" class="form-check-input">
+                            <span class="label-badge" th:style="'background-color: ' + ${label.color}"
+                                  th:text="${label.name}">Label</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a th:href="@{/spaces/{key}/issues(key=${currentSpace.spaceKey})}" class="btn btn-secondary">취소</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> 업무 만들기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>백로그</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="page-header">
+            <h1 class="page-title">백로그</h1>
+            <div class="page-header-actions">
+                <button class="btn btn-secondary" id="createSprintBtn" onclick="toggleCreateSprintForm()">
+                    <i class="fas fa-plus"></i> 스프린트 만들기
+                </button>
+                <a th:href="@{/spaces/{key}/issues/new(key=${currentSpace.spaceKey})}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 업무 만들기
+                </a>
+            </div>
+        </div>
+
+        <!-- Create Sprint form (hidden by default) -->
+        <div class="section-card create-sprint-form" id="createSprintForm" style="display: none;">
+            <div class="section-card-body">
+                <form th:action="@{/spaces/{key}/sprints(key=${currentSpace.spaceKey})}" method="post" class="form-inline-row">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="form-group form-group-grow">
+                        <input type="text" name="name" class="form-control" placeholder="스프린트 이름" required>
+                    </div>
+                    <div class="form-group form-group-grow">
+                        <input type="text" name="goal" class="form-control" placeholder="스프린트 목표 (선택사항)">
+                    </div>
+                    <div class="form-group">
+                        <input type="date" name="startDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <input type="date" name="endDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">만들기</button>
+                        <button type="button" class="btn btn-ghost" onclick="toggleCreateSprintForm()">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sprint sections -->
+        <div class="backlog-sprints" th:if="${sprints != null and !#lists.isEmpty(sprints)}">
+            <div class="sprint-section" th:each="sprint : ${sprints}">
+                <div class="section-card">
+                    <div class="section-card-header sprint-header">
+                        <div class="sprint-header-left">
+                            <h2 class="section-title">
+                                <i class="fas fa-bolt"></i>
+                                <span th:text="${sprint.name}">스프린트 1</span>
+                            </h2>
+                            <span class="sprint-status-badge"
+                                  th:classappend="'sprint-status-' + ${#strings.toLowerCase(sprint.status.name())}"
+                                  th:switch="${sprint.status.name()}">
+                                <span th:case="'PLANNED'">계획됨</span>
+                                <span th:case="'ACTIVE'">진행 중</span>
+                                <span th:case="'COMPLETED'">완료됨</span>
+                                <span th:case="*" th:text="${sprint.status}">상태</span>
+                            </span>
+                            <span class="sprint-dates" th:if="${sprint.startDate != null}">
+                                <span th:text="${#temporals.format(sprint.startDate, 'MMM dd')}">Jan 01</span>
+                                <span th:if="${sprint.endDate != null}">
+                                    - <span th:text="${#temporals.format(sprint.endDate, 'MMM dd, yyyy')}">Jan 14, 2025</span>
+                                </span>
+                            </span>
+                        </div>
+                        <div class="sprint-header-right">
+                            <span class="sprint-issue-count">
+                                <span th:text="${sprint.issues != null} ? ${#lists.size(sprint.issues)} : '0'">0</span>개 업무
+                            </span>
+                            <span class="sprint-points" th:if="${sprint.totalPoints != null}">
+                                <span th:text="${sprint.totalPoints}">0</span> 포인트
+                            </span>
+
+                            <!-- Sprint actions -->
+                            <div class="sprint-actions">
+                                <form th:if="${sprint.status.name() == 'PLANNED'}"
+                                      th:action="@{/spaces/{key}/sprints/{sprintId}/start(key=${currentSpace.spaceKey}, sprintId=${sprint.id})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-play"></i> 스프린트 시작
+                                    </button>
+                                </form>
+                                <form th:if="${sprint.status.name() == 'ACTIVE'}"
+                                      th:action="@{/spaces/{key}/sprints/{sprintId}/complete(key=${currentSpace.spaceKey}, sprintId=${sprint.id})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit" class="btn btn-secondary btn-sm"
+                                            onclick="return confirm('이 스프린트를 완료하시겠습니까?')">
+                                        <i class="fas fa-flag-checkered"></i> 스프린트 완료
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sprint goal -->
+                    <div class="sprint-goal-bar" th:if="${sprint.goal != null and !#strings.isEmpty(sprint.goal)}">
+                        <span class="sprint-goal-label">목표:</span>
+                        <span th:text="${sprint.goal}">스프린트 목표 설명</span>
+                    </div>
+
+                    <div class="section-card-body sprint-body">
+                        <!-- Issues in this sprint -->
+                        <div class="backlog-issue-list" th:if="${sprint.issues != null and !#lists.isEmpty(sprint.issues)}">
+                            <div class="backlog-issue-item" th:each="issue : ${sprint.issues}">
+                                <div class="backlog-issue-left">
+                                    <span class="issue-type-icon issue-type-icon-sm"
+                                          th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                        <i class="fas"
+                                           th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                                    </span>
+                                    <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                       class="backlog-issue-key" th:text="${issue.issueKey}">PRJ-1</a>
+                                    <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                                       class="backlog-issue-title" th:text="${issue.title}">업무 제목</a>
+                                </div>
+                                <div class="backlog-issue-right">
+                                    <span class="priority-badge priority-badge-sm"
+                                          th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                          th:text="${issue.priority}">MEDIUM</span>
+                                    <span class="status-badge status-badge-sm"
+                                          th:classappend="'status-' + ${#strings.toLowerCase(#strings.replace(issue.status.name(), '_', '-'))}"
+                                          th:text="${#strings.replace(issue.status.name(), '_', ' ')}">TODO</span>
+                                    <div class="backlog-issue-assignee" th:if="${issue.assignee != null}">
+                                        <div class="member-avatar member-avatar-xs">
+                                            <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                        </div>
+                                    </div>
+                                    <span class="board-card-points" th:if="${issue.storyPoints != null}"
+                                          th:text="${issue.storyPoints}">3</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="empty-state-inline" th:unless="${sprint.issues != null and !#lists.isEmpty(sprint.issues)}">
+                            <p>이 스프린트에 업무가 없습니다. 백로그에서 업무를 드래그하거나 할당하세요.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backlog section (issues with no sprint) -->
+        <div class="section-card backlog-section">
+            <div class="section-card-header">
+                <h2 class="section-title">
+                    <i class="fas fa-layer-group"></i> 백로그
+                </h2>
+                <span class="backlog-count"
+                      th:text="${backlogIssues != null} ? ${#lists.size(backlogIssues)} + '개 업무' : '0개 업무'">0개 업무</span>
+            </div>
+            <div class="section-card-body">
+                <div class="backlog-issue-list" th:if="${backlogIssues != null and !#lists.isEmpty(backlogIssues)}">
+                    <div class="backlog-issue-item" th:each="issue : ${backlogIssues}">
+                        <div class="backlog-issue-left">
+                            <span class="issue-type-icon issue-type-icon-sm"
+                                  th:classappend="'type-' + ${#strings.toLowerCase(issue.issueType.name())}">
+                                <i class="fas"
+                                   th:classappend="${issue.issueType.name() == 'BUG'} ? 'fa-bug' : (${issue.issueType.name() == 'STORY'} ? 'fa-bookmark' : (${issue.issueType.name() == 'TASK'} ? 'fa-check-square' : (${issue.issueType.name() == 'EPIC'} ? 'fa-bolt' : 'fa-tasks')))"></i>
+                            </span>
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="backlog-issue-key" th:text="${issue.issueKey}">PRJ-1</a>
+                            <a th:href="@{/spaces/{key}/issues/{issueKey}(key=${currentSpace.spaceKey}, issueKey=${issue.issueKey})}"
+                               class="backlog-issue-title" th:text="${issue.title}">업무 제목</a>
+                        </div>
+                        <div class="backlog-issue-right">
+                            <span class="priority-badge priority-badge-sm"
+                                  th:classappend="'priority-' + ${#strings.toLowerCase(issue.priority.name())}"
+                                  th:text="${issue.priority}">MEDIUM</span>
+                            <div class="backlog-issue-assignee" th:if="${issue.assignee != null}">
+                                <div class="member-avatar member-avatar-xs">
+                                    <span th:with="aName=${issue.assignee.displayName != null and issue.assignee.displayName != '' ? issue.assignee.displayName : issue.assignee.username}" th:text="${aName != null and aName != '' ? #strings.substring(aName, 0, 1).toUpperCase() : '?'}">U</span>
+                                </div>
+                            </div>
+                            <span class="board-card-points" th:if="${issue.storyPoints != null}"
+                                  th:text="${issue.storyPoints}">3</span>
+
+                            <!-- Assign to sprint -->
+                            <div class="backlog-assign-sprint" th:if="${sprints != null and !#lists.isEmpty(sprints)}">
+                                <form th:action="@{/spaces/{key}/issues/{issueId}/assign-sprint(key=${currentSpace.spaceKey}, issueId=${issue.id})}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <select name="sprintId" class="form-control form-select form-select-sm"
+                                            onchange="this.form.submit()">
+                                        <option value="" disabled selected>스프린트로 이동...</option>
+                                        <option th:each="sprint : ${sprints}"
+                                                th:value="${sprint.id}"
+                                                th:text="${sprint.name}">스프린트 1</option>
+                                    </select>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="empty-state-inline" th:unless="${backlogIssues != null and !#lists.isEmpty(backlogIssues)}">
+                    <p>백로그에 업무가 없습니다. 모든 업무가 스프린트에 할당되었습니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            function toggleCreateSprintForm() {
+                var form = document.getElementById('createSprintForm');
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        </script>
+    </div>
+</body>
+</html>
