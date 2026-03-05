@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title th:text="'#' + ${issue.issueNumber} + ' ' + ${issue.title}">Issue</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <!-- Issue header -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h3>
+                    <span th:text="${issue.title}"></span>
+                    <span class="text-muted fw-normal" th:text="'#' + ${issue.issueNumber}"></span>
+                </h3>
+                <div>
+                    <span class="badge"
+                          th:classappend="${issue.state.name() == 'OPEN'} ? 'bg-success' : 'bg-danger'"
+                          th:text="${issue.state}"></span>
+                    <span class="text-muted ms-2">
+                        <span th:text="${issue.author.username}"></span> opened this issue on
+                        <span th:text="${#temporals.format(issue.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-9">
+                <!-- Issue body -->
+                <div class="card mb-3" th:if="${issue.body != null and !issue.body.isEmpty()}">
+                    <div class="card-body" style="white-space: pre-wrap;" th:text="${issue.body}"></div>
+                </div>
+
+                <!-- Labels -->
+                <div th:if="${!issue.labels.isEmpty()}" class="mb-3">
+                    <span th:each="label : ${issue.labels}" class="issue-label"
+                          th:style="'background-color:' + ${label.color}"
+                          th:text="${label.name}"></span>
+                </div>
+
+                <!-- Comments -->
+                <div th:each="comment : ${issue.comments}" class="card mb-2">
+                    <div class="card-header d-flex justify-content-between">
+                        <strong th:text="${comment.author.username}"></strong>
+                        <small class="text-muted"
+                               th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}"></small>
+                    </div>
+                    <div class="card-body" style="white-space: pre-wrap;" th:text="${comment.body}"></div>
+                </div>
+
+                <!-- Add comment form -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <form th:action="@{/{o}/{r}/issues/{n}/comment(o=${owner}, r=${repo}, n=${issue.issueNumber})}"
+                              method="post">
+                            <div class="mb-3">
+                                <textarea class="form-control" name="body" rows="4"
+                                          placeholder="Leave a comment..." required></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-success btn-sm">Comment</button>
+                                <div>
+                                    <form th:if="${issue.state.name() == 'OPEN'}"
+                                          th:action="@{/{o}/{r}/issues/{n}/close(o=${owner}, r=${repo}, n=${issue.issueNumber})}"
+                                          method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Close issue</button>
+                                    </form>
+                                    <form th:if="${issue.state.name() == 'CLOSED'}"
+                                          th:action="@{/{o}/{r}/issues/{n}/reopen(o=${owner}, r=${repo}, n=${issue.issueNumber})}"
+                                          method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-outline-success btn-sm">Reopen issue</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header"><strong>Labels</strong></div>
+                    <div class="card-body">
+                        <div th:if="${issue.labels.isEmpty()}" class="text-muted small">No labels</div>
+                        <div th:each="label : ${issue.labels}">
+                            <span class="issue-label" th:style="'background-color:' + ${label.color}"
+                                  th:text="${label.name}"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><strong>Assignee</strong></div>
+                    <div class="card-body">
+                        <span th:if="${issue.assignee != null}" th:text="${issue.assignee.username}"></span>
+                        <span th:unless="${issue.assignee != null}" class="text-muted small">No one assigned</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

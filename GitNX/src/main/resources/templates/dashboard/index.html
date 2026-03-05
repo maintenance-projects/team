@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Dashboard</h2>
+            <div class="d-flex gap-2">
+                <a th:href="@{/new}" class="btn btn-success">+ New Repository</a>
+                <a th:href="@{/import}" class="btn btn-outline-primary">Import Repository</a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Your Repositories</h5>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${repositories == null or repositories.isEmpty()}"
+                             class="text-center text-muted py-5">
+                            <h5>No repositories yet</h5>
+                            <p>Create your first repository to get started.</p>
+                            <a th:href="@{/new}" class="btn btn-outline-success">
+                                Create a repository
+                            </a>
+                        </div>
+                        <div th:if="${repositories != null and !repositories.isEmpty()}"
+                             class="list-group list-group-flush">
+                            <a th:each="repo : ${repositories}"
+                               th:href="@{/{owner}/{name}(owner=${repo.ownerUsername}, name=${repo.name})}"
+                               class="list-group-item list-group-item-action">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <span th:text="${repo.ownerUsername}" class="text-muted"></span>
+                                            /
+                                            <span th:text="${repo.name}" class="fw-bold"></span>
+                                        </h6>
+                                        <small th:text="${repo.description}" class="text-muted"></small>
+                                    </div>
+                                    <span th:text="${repo.visibility}"
+                                          th:classappend="${repo.visibility.name() == 'PUBLIC'} ? 'badge bg-success' : 'badge bg-secondary'"></span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/new}" class="btn btn-outline-success">New Repository</a>
+                            <a th:href="@{/import}" class="btn btn-outline-primary">Import Repository</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

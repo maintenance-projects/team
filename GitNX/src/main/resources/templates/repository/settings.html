@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="'Settings - ' + ${owner} + '/' + ${repo}">Settings</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <h5 class="mb-3">Members</h5>
+
+        <!-- Flash messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Add Member -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Add Member</strong>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/{o}/{r}/settings/members(o=${owner}, r=${repo})}" method="post">
+                    <div class="d-flex gap-2 align-items-end">
+                        <div class="flex-grow-1">
+                            <label class="form-label small">Username</label>
+                            <input type="text" name="username" class="form-control form-control-sm"
+                                   placeholder="Enter username" required>
+                        </div>
+                        <div>
+                            <label class="form-label small">Role</label>
+                            <select name="role" class="form-select form-select-sm">
+                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"></option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-success btn-sm">Add Member</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Members -->
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <strong>Current Members</strong>
+                <span class="badge bg-secondary ms-2" th:text="${members.size()}"></span>
+            </div>
+            <table class="table mb-0">
+                <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th style="width: 120px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="member : ${members}">
+                    <td class="align-middle">
+                        <strong th:text="${member.user.username}"></strong>
+                        <small class="text-muted ms-2"
+                               th:if="${member.user.displayName != null and member.user.displayName != member.user.username}"
+                               th:text="${member.user.displayName}"></small>
+                    </td>
+                    <td class="align-middle">
+                        <!-- OWNER: static badge -->
+                        <span th:if="${member.role.name() == 'OWNER'}"
+                              class="badge bg-warning text-dark">OWNER</span>
+                        <!-- Non-OWNER: role change dropdown -->
+                        <form th:unless="${member.role.name() == 'OWNER'}"
+                              th:action="@{/{o}/{r}/settings/members/{mid}/role(o=${owner}, r=${repo}, mid=${member.id})}"
+                              method="post" class="d-inline">
+                            <select name="role" class="form-select form-select-sm d-inline-block"
+                                    style="width: auto;" onchange="this.form.submit()">
+                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"
+                                        th:selected="${r == member.role}"></option>
+                            </select>
+                        </form>
+                    </td>
+                    <td class="align-middle">
+                        <!-- Remove button: only for non-owners -->
+                        <form th:unless="${member.role.name() == 'OWNER'}"
+                              th:action="@{/{o}/{r}/settings/members/{mid}/delete(o=${owner}, r=${repo}, mid=${member.id})}"
+                              method="post" class="d-inline"
+                              onsubmit="return confirm('Remove this member?')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                        </form>
+                        <span th:if="${member.role.name() == 'OWNER'}" class="text-muted small">&mdash;</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title>New Issue</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <h4 class="mb-3">New Issue</h4>
+        <form th:action="@{/{o}/{r}/issues(o=${owner}, r=${repo})}" method="post">
+            <div class="mb-3">
+                <label for="title" class="form-label fw-bold">Title</label>
+                <input type="text" class="form-control" id="title" name="title" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label for="body" class="form-label fw-bold">Description</label>
+                <textarea class="form-control" id="body" name="body" rows="8"
+                          placeholder="Leave a description..."></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">Submit new issue</button>
+                <a th:href="@{/{o}/{r}/issues(o=${owner}, r=${repo})}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

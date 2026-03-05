@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<div th:fragment="repoNav(owner, repo, activeTab)">
+    <div class="d-flex align-items-center mb-3">
+        <h4 class="mb-0">
+            <a th:href="@{/{o}(o=${owner})}" th:text="${owner}" class="text-muted text-decoration-none"></a>
+            <span class="text-muted">/</span>
+            <a th:href="@{/{o}/{r}(o=${owner}, r=${repo})}" th:text="${repo}" class="text-decoration-none fw-bold"></a>
+        </h4>
+        <span th:if="${gitRepo != null}" class="badge ms-2"
+              th:classappend="${gitRepo.visibility.name() == 'PUBLIC'} ? 'bg-success' : 'bg-secondary'"
+              th:text="${gitRepo.visibility}"></span>
+    </div>
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'code'} ? 'active'"
+               th:href="@{/{o}/{r}(o=${owner}, r=${repo})}">Code</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'issues'} ? 'active'"
+               th:href="@{/{o}/{r}/issues(o=${owner}, r=${repo})}">Issues</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'mergerequests'} ? 'active'"
+               th:href="@{/{o}/{r}/merge-requests(o=${owner}, r=${repo})}">Merge Requests</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activeTab == 'branches'} ? 'active'"
+               th:href="@{/{o}/{r}/branches(o=${owner}, r=${repo})}">Branches</a>
+        </li>
+        <li class="nav-item"
+            th:if="${#authentication != null and #authentication.name == owner}">
+            <a class="nav-link" th:classappend="${activeTab == 'settings'} ? 'active'"
+               th:href="@{/{o}/{r}/settings(o=${owner}, r=${repo})}">Settings</a>
+        </li>
+    </ul>
+</div>
+</html>

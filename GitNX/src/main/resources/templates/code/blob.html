@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="${file.name + ' - ' + owner + '/' + repo}">File</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center mb-3">
+            <div class="dropdown branch-selector me-2">
+                <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <span th:text="${currentBranch}">main</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li th:each="b : ${branches}">
+                        <a class="dropdown-item" th:classappend="${b.name == currentBranch} ? 'active'"
+                           th:href="@{/{o}/{r}/tree/{branch}(o=${owner}, r=${repo}, branch=${b.name})}"
+                           th:text="${b.name}"></a>
+                    </li>
+                </ul>
+            </div>
+
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb path-breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/{o}/{r}/tree/{b}(o=${owner}, r=${repo}, b=${currentBranch})}"
+                           th:text="${repo}"></a>
+                    </li>
+                    <li th:each="seg, iter : ${pathSegments}" class="breadcrumb-item"
+                        th:classappend="${iter.last} ? 'active'">
+                        <span th:if="${iter.last}" th:text="${seg}"></span>
+                        <a th:unless="${iter.last}"
+                           th:href="@{/{o}/{r}/tree/{b}/{path}(o=${owner}, r=${repo}, b=${currentBranch}, path=${T(java.lang.String).join('/', pathSegments.subList(0, iter.index + 1))})}"
+                           th:text="${seg}"></a>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- File content card -->
+        <div class="card code-viewer">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <span th:text="${file.lineCount}"></span> lines |
+                    <span th:text="${file.size}"></span> bytes
+                </span>
+                <a th:href="@{/{o}/{r}/raw/{b}/{p}(o=${owner}, r=${repo}, b=${currentBranch}, p=${file.path})}"
+                   class="btn btn-outline-secondary btn-sm">Raw</a>
+            </div>
+            <div class="card-body p-0">
+                <div th:if="${file.binary}" class="text-center text-muted py-5">
+                    Binary file not shown.
+                </div>
+                <pre th:unless="${file.binary}"><code th:classappend="'language-' + ${file.language}" th:text="${file.content}"></code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

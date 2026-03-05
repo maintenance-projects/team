@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title>Server Error</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-5 text-center">
+        <h1 class="display-1 text-muted">500</h1>
+        <h3 class="mb-3">Something went wrong</h3>
+        <p class="text-muted" th:text="${message} ?: 'An unexpected error occurred. Please try again later.'"></p>
+        <a href="/dashboard" class="btn btn-primary mt-3">Go to Dashboard</a>
+    </div>
+</div>
+</body>
+</html>

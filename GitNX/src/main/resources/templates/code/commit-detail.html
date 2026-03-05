@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="'Commit ' + ${commit.shortHash}">Commit</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <!-- Commit info -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 th:text="${commit.message}"></h5>
+                <div class="text-muted mt-2">
+                    <strong th:text="${commit.authorName}"></strong>
+                    &lt;<span th:text="${commit.authorEmail}"></span>&gt;
+                    committed on
+                    <span th:text="${#temporals.format(commit.authorDate, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                </div>
+                <div class="mt-2">
+                    <code class="text-muted" th:text="${commit.hash}"></code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Changed files summary -->
+        <div class="mb-3">
+            <strong th:text="${diffs.size() + ' files changed'}"></strong>
+        </div>
+
+        <!-- Diffs -->
+        <div th:each="diff : ${diffs}" class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                <span>
+                    <span class="badge"
+                          th:classappend="${diff.changeType == 'ADD'} ? 'bg-success' : (${diff.changeType == 'DELETE'} ? 'bg-danger' : 'bg-warning')"
+                          th:text="${diff.changeType}"></span>
+                    <span th:text="${diff.changeType == 'DELETE' ? diff.oldPath : diff.newPath}" class="font-monospace ms-2"></span>
+                </span>
+            </div>
+            <div class="card-body p-0 diff-container">
+                <pre class="mb-0 p-2" style="overflow-x: auto; font-size: 12px;"><code th:text="${diff.diffContent}"></code></pre>
+            </div>
+        </div>
+
+        <div th:if="${diffs.isEmpty()}" class="text-center text-muted py-4">
+            No changes found.
+        </div>
+    </div>
+</div>
+</body>
+</html>

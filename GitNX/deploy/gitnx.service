@@ -1,0 +1,21 @@
+[Unit]
+Description=GitNX - Self-hosted Git Repository Management
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=gitnx
+Group=gitnx
+WorkingDirectory=/opt/gitnx/source/GitNX
+EnvironmentFile=/opt/gitnx/gitnx.env
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /opt/gitnx/source/GitNX/build/libs/gitnx-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gitnx
+
+[Install]
+WantedBy=multi-user.target

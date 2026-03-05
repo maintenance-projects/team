@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="'Branches - ' + ${owner} + '/' + ${repo}">Branches</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <h5 class="mb-3">Branches</h5>
+
+        <div class="card">
+            <div class="list-group list-group-flush">
+                <div th:each="branch : ${branches}" class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <a th:href="@{/{o}/{r}/tree/{b}(o=${owner}, r=${repo}, b=${branch.name})}"
+                           class="text-decoration-none fw-bold" th:text="${branch.name}"></a>
+                        <span th:if="${branch.isDefault()}" class="badge bg-primary ms-2">default</span>
+                    </div>
+                    <div class="text-muted small">
+                        <code th:text="${branch.lastCommitHash}"></code>
+                        <span th:text="${branch.lastCommitMessage}" class="ms-2"></span>
+                    </div>
+                </div>
+                <div th:if="${branches.isEmpty()}" class="list-group-item text-center text-muted py-4">
+                    No branches found.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

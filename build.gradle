@@ -1,0 +1,2 @@
+// Root project - composite build wrapper for IntelliJ multi-module support
+// Individual projects: GitNX (port 8080), SpaceNX (port 8081)

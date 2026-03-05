@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title>Forbidden</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-5 text-center">
+        <h1 class="display-1 text-muted">403</h1>
+        <h3 class="mb-3">Access denied</h3>
+        <p class="text-muted" th:text="${message} ?: 'You do not have permission to access this resource.'"></p>
+        <a href="/dashboard" class="btn btn-primary mt-3">Go to Dashboard</a>
+    </div>
+</div>
+</body>
+</html>

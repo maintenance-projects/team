@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/gitnx}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+
+  thymeleaf:
+    cache: true
+
+server:
+  port: 8080
+
+gitnx:
+  repos:
+    base-path: ${GITNX_REPOS_PATH:/opt/gitnx/repos}
+  clone:
+    http-base-url: ${GITNX_CLONE_URL:http://localhost:8080/repo}
+
+logging:
+  level:
+    com.gitnx: INFO
+    org.eclipse.jgit: WARN

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title th:text="'Issues - ' + ${owner} + '/' + ${repo}">Issues</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <a th:href="@{/{o}/{r}/issues(o=${owner}, r=${repo}, state='OPEN')}"
+                   class="btn btn-sm" th:classappend="${currentState == 'OPEN'} ? 'btn-dark' : 'btn-outline-dark'">
+                    Open <span class="badge bg-secondary" th:text="${openCount}"></span>
+                </a>
+                <a th:href="@{/{o}/{r}/issues(o=${owner}, r=${repo}, state='CLOSED')}"
+                   class="btn btn-sm" th:classappend="${currentState == 'CLOSED'} ? 'btn-dark' : 'btn-outline-dark'">
+                    Closed <span class="badge bg-secondary" th:text="${closedCount}"></span>
+                </a>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/{o}/{r}/labels(o=${owner}, r=${repo})}" class="btn btn-outline-secondary btn-sm">Labels</a>
+                <a th:href="@{/{o}/{r}/issues/new(o=${owner}, r=${repo})}" class="btn btn-success btn-sm">New Issue</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="list-group list-group-flush">
+                <a th:each="issue : ${issues.content}"
+                   th:href="@{/{o}/{r}/issues/{n}(o=${owner}, r=${repo}, n=${issue.issueNumber})}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <span class="badge me-2"
+                                  th:classappend="${issue.state.name() == 'OPEN'} ? 'bg-success' : 'bg-danger'"
+                                  th:text="${issue.state}"></span>
+                            <strong th:text="${issue.title}"></strong>
+                            <span th:each="label : ${issue.labels}" class="issue-label ms-1"
+                                  th:style="'background-color:' + ${label.color}"
+                                  th:text="${label.name}"></span>
+                        </div>
+                        <small class="text-muted">
+                            #<span th:text="${issue.issueNumber}"></span>
+                        </small>
+                    </div>
+                    <small class="text-muted">
+                        opened by <span th:text="${issue.author.username}"></span>
+                        on <span th:text="${#temporals.format(issue.createdAt, 'yyyy-MM-dd')}"></span>
+                    </small>
+                </a>
+                <div th:if="${issues.content.isEmpty()}" class="list-group-item text-center text-muted py-4">
+                    No issues found.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

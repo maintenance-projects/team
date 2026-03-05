@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title th:text="'Merge Requests - ' + ${owner} + '/' + ${repo}">Merge Requests</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <a th:href="@{/{o}/{r}/merge-requests(o=${owner}, r=${repo}, state='OPEN')}"
+                   class="btn btn-sm" th:classappend="${currentState == 'OPEN'} ? 'btn-dark' : 'btn-outline-dark'">
+                    Open <span class="badge bg-secondary" th:text="${openCount}"></span>
+                </a>
+                <a th:href="@{/{o}/{r}/merge-requests(o=${owner}, r=${repo}, state='MERGED')}"
+                   class="btn btn-sm" th:classappend="${currentState == 'MERGED'} ? 'btn-dark' : 'btn-outline-dark'">
+                    Merged <span class="badge bg-secondary" th:text="${mergedCount}"></span>
+                </a>
+                <a th:href="@{/{o}/{r}/merge-requests(o=${owner}, r=${repo}, state='CLOSED')}"
+                   class="btn btn-sm" th:classappend="${currentState == 'CLOSED'} ? 'btn-dark' : 'btn-outline-dark'">
+                    Closed <span class="badge bg-secondary" th:text="${closedCount}"></span>
+                </a>
+            </div>
+            <a th:href="@{/{o}/{r}/merge-requests/new(o=${owner}, r=${repo})}" class="btn btn-success btn-sm">New Merge Request</a>
+        </div>
+
+        <div class="card">
+            <div class="list-group list-group-flush">
+                <a th:each="mr : ${mergeRequests.content}"
+                   th:href="@{/{o}/{r}/merge-requests/{n}(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <span class="badge me-2"
+                                  th:classappend="${mr.state.name() == 'OPEN'} ? 'bg-success' : (${mr.state.name() == 'MERGED'} ? 'bg-primary' : 'bg-danger')"
+                                  th:text="${mr.state}"></span>
+                            <strong th:text="${mr.title}"></strong>
+                        </div>
+                        <small class="text-muted">
+                            !<span th:text="${mr.mrNumber}"></span>
+                        </small>
+                    </div>
+                    <small class="text-muted">
+                        <span th:text="${mr.sourceBranch}"></span> &rarr; <span th:text="${mr.targetBranch}"></span>
+                        &middot; opened by <span th:text="${mr.author.username}"></span>
+                        on <span th:text="${#temporals.format(mr.createdAt, 'yyyy-MM-dd')}"></span>
+                    </small>
+                </a>
+                <div th:if="${mergeRequests.content.isEmpty()}" class="list-group-item text-center text-muted py-4">
+                    No merge requests found.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

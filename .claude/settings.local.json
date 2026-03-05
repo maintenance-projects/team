@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /Users/scalper/project/team/NeoGit/src/main/java/com/neogit/**/*.java)",
+      "Bash(wc -l /Users/scalper/project/team/SpaceNX/src/main/java/com/spacenx/**/*.java)",
+      "Bash(docker ps -a --filter \"ancestor=postgres\" --filter \"ancestor=postgres:16-alpine\" --filter \"ancestor=postgres:17\" --format \"table {{.ID}}\\\\t{{.Names}}\\\\t{{.Image}}\\\\t{{.Status}}\\\\t{{.Ports}}\")",
+      "Bash(docker ps -a --format \"table {{.ID}}\\\\t{{.Names}}\\\\t{{.Image}}\\\\t{{.Status}}\")",
+      "Bash(docker volume ls)",
+      "Bash(docker stop spacenx-db)",
+      "Bash(docker rm spacenx-db)",
+      "Bash(docker volume rm gitneo_gitneo-pgdata spacenx_spacenx-pgdata)",
+      "Bash(docker ps --format \"table {{.Names}}\\\\t{{.Status}}\\\\t{{.Ports}}\")",
+      "Bash(docker exec postgres-container psql -U root -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname=''gitnx''\")",
+      "Bash(docker exec postgres-container psql -U root -d postgres -c \"CREATE DATABASE gitnx;\")",
+      "Bash(./gradlew build -x test --quiet)",
+      "Bash(lsof -i :8080 -sTCP:LISTEN)",
+      "Bash(lsof -i :8081 -sTCP:LISTEN)",
+      "Bash(JAVA_HOME=\"C:/Program Files \\(x86\\)/Java/jdk-21.0.9\" ./gradlew build:*)",
+      "Bash(./run.sh stop:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(JAVA_HOME=\"C:/Program Files \\(x86\\)/Java/jdk-21.0.9\" ./gradlew processResources:*)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Eclipse Adoptium/jdk-21.0.6.7-hotspot\" ./gradlew processResources:*)",
+      "Bash(JAVA_HOME=\"/c/Users/rlack/.jdks/ms-21.0.7\" ./gradlew processResources:*)",
+      "Bash(JAVA_HOME=\"/c/Users/rlack/.jdks/ms-21.0.7\" ./gradlew compileJava:*)",
+      "Bash(bash:*)",
+      "Bash(./gradlew build:*)"
+    ]
+  }
+}

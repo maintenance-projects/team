@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="'Commits - ' + ${owner} + '/' + ${repo}">Commits</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <div class="d-flex align-items-center mb-3">
+            <div class="dropdown branch-selector me-3">
+                <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <span th:text="${currentBranch}">main</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li th:each="b : ${branches}">
+                        <a class="dropdown-item" th:classappend="${b.name == currentBranch} ? 'active'"
+                           th:href="@{/{o}/{r}/commits/{branch}(o=${owner}, r=${repo}, branch=${b.name})}"
+                           th:text="${b.name}"></a>
+                    </li>
+                </ul>
+            </div>
+            <h5 class="mb-0">Commits</h5>
+        </div>
+
+        <div class="card">
+            <div class="list-group list-group-flush">
+                <div th:each="commit : ${commits}" class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <a th:href="@{/{o}/{r}/commit/{h}(o=${owner}, r=${repo}, h=${commit.hash})}"
+                               class="text-decoration-none fw-bold"
+                               th:text="${commit.message.contains(T(System).lineSeparator()) ? commit.message.substring(0, commit.message.indexOf(T(System).lineSeparator())) : commit.message}">
+                            </a>
+                            <div class="text-muted small mt-1">
+                                <span th:text="${commit.authorName}"></span> committed on
+                                <span th:text="${#temporals.format(commit.authorDate, 'yyyy-MM-dd HH:mm')}"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <a th:href="@{/{o}/{r}/commit/{h}(o=${owner}, r=${repo}, h=${commit.hash})}"
+                               class="btn btn-outline-secondary btn-sm font-monospace"
+                               th:text="${commit.shortHash}"></a>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${commits.isEmpty()}" class="list-group-item text-center text-muted py-4">
+                    No commits found.
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between mt-3" th:if="${!commits.isEmpty()}">
+            <a th:if="${currentPage > 0}"
+               th:href="@{/{o}/{r}/commits/{b}(o=${owner}, r=${repo}, b=${currentBranch}, page=${currentPage - 1})}"
+               class="btn btn-outline-secondary">Previous</a>
+            <span th:unless="${currentPage > 0}"></span>
+            <a th:if="${hasMore}"
+               th:href="@{/{o}/{r}/commits/{b}(o=${owner}, r=${repo}, b=${currentBranch}, page=${currentPage + 1})}"
+               class="btn btn-outline-secondary">Next</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

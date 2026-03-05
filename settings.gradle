@@ -1,0 +1,4 @@
+rootProject.name = 'team'
+
+includeBuild('GitNX')
+includeBuild('SpaceNX')

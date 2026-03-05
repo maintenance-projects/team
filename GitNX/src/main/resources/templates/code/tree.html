@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="${owner + '/' + repo}">Repository</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <!-- Branch selector & actions -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="dropdown branch-selector">
+                    <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <span th:text="${currentBranch}">main</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li th:each="b : ${branches}">
+                            <a class="dropdown-item" th:classappend="${b.name == currentBranch} ? 'active'"
+                               th:href="@{/{o}/{r}/tree/{branch}(o=${owner}, r=${repo}, branch=${b.name})}"
+                               th:text="${b.name}"></a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Breadcrumb -->
+                <nav th:if="${currentPath != null and !currentPath.isEmpty()}" aria-label="breadcrumb">
+                    <ol class="breadcrumb path-breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/{o}/{r}/tree/{b}(o=${owner}, r=${repo}, b=${currentBranch})}"
+                               th:text="${repo}"></a>
+                        </li>
+                        <li th:each="seg, iter : ${pathSegments}" class="breadcrumb-item"
+                            th:classappend="${iter.last} ? 'active'">
+                            <span th:if="${iter.last}" th:text="${seg}"></span>
+                            <a th:unless="${iter.last}"
+                               th:href="@{/{o}/{r}/tree/{b}/{path}(o=${owner}, r=${repo}, b=${currentBranch}, path=${T(java.lang.String).join('/', pathSegments.subList(0, iter.index + 1))})}"
+                               th:text="${seg}"></a>
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+
+            <div class="d-flex gap-2 align-items-center">
+                <a th:href="@{/{o}/{r}/commits/{b}(o=${owner}, r=${repo}, b=${currentBranch})}"
+                   class="btn btn-outline-secondary btn-sm">Commits</a>
+
+                <!-- Clone URL dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-success btn-sm dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                        &#11015; Clone
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 360px;">
+                        <h6 class="dropdown-header px-0">Clone with HTTP</h6>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" th:value="${cloneUrl}"
+                                   id="cloneUrlInput" readonly onclick="this.select()">
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="navigator.clipboard.writeText(document.getElementById('cloneUrlInput').value).then(()=>{this.textContent='Copied!'; setTimeout(()=>{this.textContent='Copy';},2000);})">
+                                Copy
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <code>git clone <span th:text="${cloneUrl}"></span></code>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File tree table -->
+        <div class="card">
+            <table class="table table-hover mb-0">
+                <tbody class="file-tree">
+                <tr th:if="${currentPath != null and !currentPath.isEmpty()}"
+                    th:with="parentPath=${currentPath.contains('/') ? currentPath.substring(0, currentPath.lastIndexOf('/')) : ''}">
+                    <td colspan="2">
+                        <a th:if="${parentPath.isEmpty()}"
+                           th:href="@{/{o}/{r}/tree/{b}(o=${owner}, r=${repo}, b=${currentBranch})}"
+                           class="text-decoration-none">
+                            <span class="file-icon">..</span>
+                        </a>
+                        <a th:if="${!parentPath.isEmpty()}"
+                           th:href="@{/{o}/{r}/tree/{b}/{p}(o=${owner}, r=${repo}, b=${currentBranch}, p=${parentPath})}"
+                           class="text-decoration-none">
+                            <span class="file-icon">..</span>
+                        </a>
+                    </td>
+                </tr>
+                <tr th:each="entry : ${entries}">
+                    <td>
+                        <span th:if="${entry.type == 'dir'}" class="file-icon dir">&#128193;</span>
+                        <span th:if="${entry.type == 'file'}" class="file-icon">&#128196;</span>
+                        <a th:if="${entry.type == 'dir'}"
+                           th:href="@{/{o}/{r}/tree/{b}/{p}(o=${owner}, r=${repo}, b=${currentBranch}, p=${entry.path})}"
+                           th:text="${entry.name}" class="text-decoration-none"></a>
+                        <a th:if="${entry.type == 'file'}"
+                           th:href="@{/{o}/{r}/blob/{b}/{p}(o=${owner}, r=${repo}, b=${currentBranch}, p=${entry.path})}"
+                           th:text="${entry.name}" class="text-decoration-none"></a>
+                    </td>
+                    <td class="text-end text-muted" style="width: 100px;">
+                        <small th:if="${entry.type == 'file'}" th:text="${entry.size + ' B'}"></small>
+                    </td>
+                </tr>
+                <tr th:if="${entries == null or entries.isEmpty()}">
+                    <td colspan="2" class="text-center text-muted py-4">
+                        This repository is empty.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- README -->
+        <div th:if="${readme != null}" class="card mt-3">
+            <div class="card-header d-flex align-items-center">
+                <span class="me-2">&#128196;</span>
+                <strong th:text="${readmeFileName != null ? readmeFileName : 'README.md'}">README.md</strong>
+            </div>
+            <div class="card-body gn-markdown-body" th:utext="${readme}"></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

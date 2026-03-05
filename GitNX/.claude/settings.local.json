@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(./gradlew clean build:*)",
+      "WebFetch(domain:mvnrepository.com)",
+      "WebFetch(domain:spring.io)",
+      "Bash(curl -s \"https://api.github.com/repos/spring-projects/spring-boot/releases?per_page=20\")",
+      "Bash(python3 -c \" import json, sys data = json.load\\(sys.stdin\\) for r in data: name = r[''tag_name''] if name.startswith\\(''v3.''\\) and ''RC'' not in name and ''M'' not in name: print\\(name\\) \")",
+      "Bash(chmod +x /Users/scalper/project/SpaceNX/run.sh)",
+      "Bash(./gradlew build -x test)",
+      "Bash(git init)",
+      "Bash(git add -A)",
+      "Bash(docker volume ls)",
+      "Bash(docker ps -a --format '{{.Names}} {{.Ports}}')",
+      "Bash(docker ps -a --format '{{.Names}} {{.Image}} {{.Ports}}')",
+      "Bash(java -jar build/libs/spacenx-0.0.1-SNAPSHOT.jar)",
+      "Bash(docker exec postgres-container psql -U root -l)",
+      "Bash(docker exec postgres-container psql -U root -d gitneo -c \"\\\\dt *user*\")",
+      "Bash(docker exec postgres-container psql -U root -d gitneo -c \"\\\\d gn_user\")",
+      "Bash(./gradlew build -x test --quiet)",
+      "Bash(lsof -i :8081 -sTCP:LISTEN)",
+      "Bash(kill 50337)",
+      "Bash(lsof -i :8081 -sTCP:LISTEN -t)",
+      "Bash(ps -p 49839 -o pid,command=)",
+      "Bash(kill 49839)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8081/login)",
+      "Bash(lsof -i :8080 -sTCP:LISTEN -t)",
+      "Bash(kill 50624)",
+      "Bash(docker exec postgres-container psql -U root -d postgres -c \"ALTER DATABASE gitneo RENAME TO neogit;\")",
+      "Bash(docker exec postgres-container psql -U root -d neogit -c \"\\\\dt gn_*\")",
+      "Bash(kill 51366)",
+      "Bash(docker exec postgres-container psql -U root -d neogit -c \":*)",
+      "Bash(docker exec postgres-container psql -U root -d neogit -c \"\\\\dt snx_*\")",
+      "Bash(docker exec postgres-container psql -U root -d neogit -c \"SELECT id, name, space_key, space_type FROM snx_space;\")"
+    ]
+  }
+}

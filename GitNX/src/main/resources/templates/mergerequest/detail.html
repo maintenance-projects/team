@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title th:text="'!' + ${mr.mrNumber} + ' ' + ${mr.title}">MR Detail</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div th:replace="~{fragments/repo-nav :: repoNav(${owner}, ${repo}, ${activeTab})}"></div>
+
+        <!-- Flash messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- MR header -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h3>
+                    <span th:text="${mr.title}"></span>
+                    <span class="text-muted fw-normal" th:text="'!' + ${mr.mrNumber}"></span>
+                </h3>
+                <div>
+                    <span class="badge"
+                          th:classappend="${mr.state.name() == 'OPEN'} ? 'bg-success' : (${mr.state.name() == 'MERGED'} ? 'bg-primary' : 'bg-danger')"
+                          th:text="${mr.state}"></span>
+                    <span class="text-muted ms-2">
+                        <span th:text="${mr.author.username}"></span> wants to merge
+                        <code th:text="${mr.sourceBranch}"></code> into <code th:text="${mr.targetBranch}"></code>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-9">
+                <!-- Description -->
+                <div class="card mb-3" th:if="${mr.description != null and !mr.description.isEmpty()}">
+                    <div class="card-body" style="white-space: pre-wrap;" th:text="${mr.description}"></div>
+                </div>
+
+                <!-- Merge info -->
+                <div th:if="${mr.state.name() == 'MERGED'}" class="alert alert-info">
+                    Merged by <strong th:text="${mr.mergedBy?.username}"></strong>
+                    on <span th:text="${#temporals.format(mr.mergedAt, 'yyyy-MM-dd HH:mm')}"></span>
+                </div>
+
+                <!-- Diff -->
+                <div th:if="${diffError}" class="alert alert-warning" th:text="${diffError}"></div>
+
+                <div th:if="${!diffs.isEmpty()}" class="mb-3">
+                    <h5 class="mb-2">Changes <span class="badge bg-secondary" th:text="${diffs.size()}"></span></h5>
+                    <div th:each="diff : ${diffs}" class="card mb-2">
+                        <div class="card-header d-flex justify-content-between">
+                            <span>
+                                <span class="badge"
+                                      th:classappend="${diff.changeType == 'ADD'} ? 'bg-success' :
+                                          (${diff.changeType == 'DELETE'} ? 'bg-danger' :
+                                          (${diff.changeType == 'RENAME'} ? 'bg-info' : 'bg-warning'))"
+                                      th:text="${diff.changeType}"></span>
+                                <code th:text="${diff.newPath}"></code>
+                            </span>
+                        </div>
+                        <div class="card-body p-0">
+                            <pre class="diff-view mb-0"><code th:text="${diff.diffContent}"></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Comments -->
+                <div th:each="comment : ${mr.reviewComments}" class="card mb-2">
+                    <div class="card-header d-flex justify-content-between">
+                        <div>
+                            <strong th:text="${comment.author.username}"></strong>
+                            <span th:if="${comment.filePath != null}" class="text-muted ms-2">
+                                on <code th:text="${comment.filePath}"></code>
+                                <span th:if="${comment.lineNumber != null}">
+                                    line <span th:text="${comment.lineNumber}"></span>
+                                </span>
+                            </span>
+                        </div>
+                        <small class="text-muted"
+                               th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}"></small>
+                    </div>
+                    <div class="card-body" style="white-space: pre-wrap;" th:text="${comment.body}"></div>
+                </div>
+
+                <!-- Add comment form -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <form th:action="@{/{o}/{r}/merge-requests/{n}/comment(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                              method="post">
+                            <div class="mb-3">
+                                <textarea class="form-control" name="body" rows="4"
+                                          placeholder="Leave a comment..." required></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-success btn-sm">Comment</button>
+                                <div class="d-flex gap-2">
+                                    <div th:if="${mr.state.name() == 'OPEN'}">
+                                        <form th:action="@{/{o}/{r}/merge-requests/{n}/close(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                                              method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Close</button>
+                                        </form>
+                                    </div>
+                                    <div th:if="${mr.state.name() == 'CLOSED'}">
+                                        <form th:action="@{/{o}/{r}/merge-requests/{n}/reopen(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                                              method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-success btn-sm">Reopen</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <!-- Reviewers -->
+                <div class="card mb-3">
+                    <div class="card-header"><strong>Reviewers</strong></div>
+                    <div class="card-body">
+                        <div th:if="${mr.reviewers.isEmpty()}" class="text-muted small">No reviewers</div>
+                        <div th:each="reviewer : ${mr.reviewers}" class="d-flex justify-content-between align-items-center mb-1">
+                            <span th:text="${reviewer.reviewer.username}"></span>
+                            <span class="badge"
+                                  th:classappend="${reviewer.state.name() == 'APPROVED'} ? 'bg-success' :
+                                      (${reviewer.state.name() == 'CHANGES_REQUESTED'} ? 'bg-warning' : 'bg-secondary')"
+                                  th:text="${reviewer.state}"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review actions -->
+                <div th:if="${mr.state.name() == 'OPEN'}" class="card mb-3">
+                    <div class="card-header"><strong>Review</strong></div>
+                    <div class="card-body d-grid gap-2">
+                        <form th:action="@{/{o}/{r}/merge-requests/{n}/approve(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                              method="post">
+                            <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
+                        </form>
+                        <form th:action="@{/{o}/{r}/merge-requests/{n}/request-changes(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                              method="post">
+                            <button type="submit" class="btn btn-warning btn-sm w-100">Request changes</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Merge action -->
+                <div th:if="${mr.state.name() == 'OPEN' and canMerge}" class="card mb-3">
+                    <div class="card-header"><strong>Merge</strong></div>
+                    <div class="card-body">
+                        <form th:action="@{/{o}/{r}/merge-requests/{n}/merge(o=${owner}, r=${repo}, n=${mr.mrNumber})}"
+                              method="post">
+                            <button type="submit" class="btn btn-primary btn-sm w-100"
+                                    onclick="return confirm('Are you sure you want to merge this request?')">
+                                Merge
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Branch info -->
+                <div class="card">
+                    <div class="card-header"><strong>Branches</strong></div>
+                    <div class="card-body small">
+                        <div>Source: <code th:text="${mr.sourceBranch}"></code></div>
+                        <div>Target: <code th:text="${mr.targetBranch}"></code></div>
+                        <div class="text-muted mt-2">
+                            Created <span th:text="${#temporals.format(mr.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
