@@ -29,7 +29,7 @@ spring:
       max-request-size: 50MB
 
 server:
-  port: 8080
+  port: 8082
   servlet:
     session:
       timeout: 30m
@@ -38,7 +38,7 @@ gitnx:
   repos:
     base-path: ${user.home}/gitnx-repos
   clone:
-    http-base-url: http://localhost:8080/repo
+    http-base-url: http://localhost:8082/repo
 
 logging:
   level:

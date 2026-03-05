@@ -18,13 +18,13 @@ spring:
     cache: true
 
 server:
-  port: 8080
+  port: 8082
 
 gitnx:
   repos:
     base-path: ${GITNX_REPOS_PATH:/opt/gitnx/repos}
   clone:
-    http-base-url: ${GITNX_CLONE_URL:http://localhost:8080/repo}
+    http-base-url: ${GITNX_CLONE_URL:http://localhost:8082/repo}
 
 logging:
   level:

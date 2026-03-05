@@ -9,7 +9,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DB_CONTAINER="gitnx-db"
 DB_NAME="gitnx"
 DB_USER="root"
-SERVER_PORT=8080
+SERVER_PORT=8082
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -157,6 +157,18 @@ do_stop() {
             ok "프로세스 종료 (PID: ${pid})"
         fi
         rm -f "${PROJECT_DIR}/.gitnx.pid"
+    fi
+
+    # 포트를 점유한 프로세스 직접 종료
+    local port_pid
+    port_pid=$(lsof -ti ":${SERVER_PORT}" -sTCP:LISTEN 2>/dev/null || true)
+    if [[ -n "$port_pid" ]]; then
+        kill "$port_pid" 2>/dev/null || true
+        sleep 2
+        if kill -0 "$port_pid" 2>/dev/null; then
+            kill -9 "$port_pid" 2>/dev/null || true
+        fi
+        ok "포트 ${SERVER_PORT} 점유 프로세스 종료 (PID: ${port_pid})"
     fi
 
     # bootRun 프로세스도 정리
