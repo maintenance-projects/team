@@ -4,7 +4,7 @@ APP_NAME="SpaceNX"
 PID_FILE=".spacenx.pid"
 LOG_FILE="spacenx.log"
 PORT=8081
-DB_CONTAINER="postgres-container"
+DB_CONTAINER="gitnx-db"
 DB_PORT=5432
 
 RED='\033[0;31m'
@@ -27,7 +27,7 @@ check_db() {
         docker start ${DB_CONTAINER}
     else
         print_warn "Database container not found. Starting with docker-compose..."
-        docker-compose up -d
+        docker compose up -d
     fi
 
     print_status "Waiting for database to be ready..."
