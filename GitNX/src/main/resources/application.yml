@@ -38,7 +38,7 @@ gitnx:
   repos:
     base-path: ${user.home}/gitnx-repos
   clone:
-    http-base-url: http://localhost:8082/repo
+    http-base-url: http://125.131.105.208:8082/repo
 
 logging:
   level:
