@@ -6,7 +6,7 @@ set -euo pipefail
 # ─────────────────────────────────────────────
 APP_NAME="GitNX"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DB_CONTAINER="postgres-container"
+DB_CONTAINER="gitnx-db"
 DB_NAME="gitnx"
 DB_USER="root"
 SERVER_PORT=8080
