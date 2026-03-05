@@ -182,6 +182,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Report Modal -->
+        <div class="modal-overlay" id="reportModal" onclick="closeModalOnOverlay(event)">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 id="reportModalTitle" style="margin: 0;"></h3>
+                    <button class="btn btn-ghost btn-sm" onclick="closeReportModal()" style="font-size: 18px; padding: 4px 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="reportModalBody" style="padding-top: 12px; max-height: 400px; overflow-y: auto;">
+                </div>
+                <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid var(--border-color, #e2e8f0);">
+                    <a id="reportModalLink" class="btn btn-primary btn-sm" style="text-decoration: none;">전체 보기</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div layout:fragment="scripts">
@@ -189,6 +206,7 @@
         <script th:inline="javascript">
             /*<![CDATA[*/
             var spaceKey = /*[[${currentSpace.spaceKey}]]*/ '';
+            var reportData = null;
 
             document.addEventListener('DOMContentLoaded', function() {
                 loadReportData();
@@ -197,20 +215,79 @@
             function loadReportData() {
                 fetch('/spaces/' + spaceKey + '/reports/data')
                     .then(function(response) { return response.json(); })
-                    .then(function(data) { renderCharts(data); })
+                    .then(function(data) {
+                        reportData = data;
+                        renderCharts(data);
+                    })
                     .catch(function(error) {
                         console.error('Failed to load report data:', error);
                     });
             }
 
+            /* ── Modal functions ── */
+
+            function getTypeIcon(typeName) {
+                switch ((typeName || '').toUpperCase()) {
+                    case 'BUG': return 'fa-bug';
+                    case 'STORY': return 'fa-bookmark';
+                    case 'TASK': return 'fa-check-square';
+                    default: return 'fa-bolt';
+                }
+            }
+
+            function renderIssueList(issues) {
+                if (!issues || issues.length === 0) {
+                    return '<div class="empty-state-inline" style="height:100px;"><p>이슈가 없습니다.</p></div>';
+                }
+                var html = '';
+                for (var i = 0; i < issues.length; i++) {
+                    var issue = issues[i];
+                    var typeClass = 'type-' + (issue.typeName || 'task').toLowerCase();
+                    var iconClass = getTypeIcon(issue.typeName);
+                    html += '<a href="/spaces/' + spaceKey + '/issues/' + issue.issueKey + '" class="status-modal-issue-item">' +
+                        '<span class="issue-type-icon ' + typeClass + '"><i class="fas ' + iconClass + '"></i></span>' +
+                        '<span class="issue-key" style="flex-shrink:0;">' + issue.issueKey + '</span>' +
+                        '<span class="issue-title" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (issue.title || '') + '</span>' +
+                        (issue.assigneeName ? '<span class="member-avatar" style="width:24px;height:24px;font-size:11px;flex-shrink:0;" title="' + issue.assigneeName + '"><span>' + issue.assigneeName.charAt(0).toUpperCase() + '</span></span>' : '') +
+                        '</a>';
+                }
+                return html;
+            }
+
+            function openReportModal(title, issues, linkUrl) {
+                document.getElementById('reportModalTitle').textContent = title;
+                document.getElementById('reportModalBody').innerHTML = renderIssueList(issues);
+                document.getElementById('reportModalLink').href = linkUrl;
+                document.getElementById('reportModal').classList.add('show');
+            }
+
+            function closeReportModal() {
+                document.getElementById('reportModal').classList.remove('show');
+            }
+
+            function closeModalOnOverlay(event) {
+                if (event.target === event.currentTarget) {
+                    closeReportModal();
+                }
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeReportModal();
+                }
+            });
+
+            /* ── Chart rendering ── */
+
             function renderCharts(data) {
                 // 1. Status distribution (doughnut)
                 if (data.statusDistribution) {
+                    var statusKeys = Object.keys(data.statusDistribution);
                     var statusCtx = document.getElementById('statusChart').getContext('2d');
                     new Chart(statusCtx, {
                         type: 'doughnut',
                         data: {
-                            labels: Object.keys(data.statusDistribution).map(function(s) { return s.replace('_', ' '); }),
+                            labels: statusKeys.map(function(s) { return s.replace('_', ' '); }),
                             datasets: [{
                                 data: Object.values(data.statusDistribution),
                                 backgroundColor: ['#94a3b8', '#3b82f6', '#f59e0b', '#22c55e'],
@@ -220,6 +297,18 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    var idx = elements[0].index;
+                                    var statusKey = statusKeys[idx];
+                                    var issues = (data.issuesByStatus || {})[statusKey] || [];
+                                    openReportModal(
+                                        statusKey.replace('_', ' ') + ' 이슈 (' + issues.length + ')',
+                                        issues,
+                                        '/spaces/' + spaceKey + '/issues?status=' + statusKey
+                                    );
+                                }
+                            },
                             plugins: {
                                 legend: {
                                     position: 'bottom',
@@ -233,11 +322,12 @@
 
                 // 2. Priority distribution (bar)
                 if (data.priorityDistribution) {
+                    var priorityKeys = Object.keys(data.priorityDistribution);
                     var priorityCtx = document.getElementById('priorityChart').getContext('2d');
                     new Chart(priorityCtx, {
                         type: 'bar',
                         data: {
-                            labels: Object.keys(data.priorityDistribution),
+                            labels: priorityKeys,
                             datasets: [{
                                 label: '업무',
                                 data: Object.values(data.priorityDistribution),
@@ -249,6 +339,18 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    var idx = elements[0].index;
+                                    var priorityKey = priorityKeys[idx];
+                                    var issues = (data.issuesByPriority || {})[priorityKey] || [];
+                                    openReportModal(
+                                        priorityKey + ' 우선순위 이슈 (' + issues.length + ')',
+                                        issues,
+                                        '/spaces/' + spaceKey + '/issues?priority=' + priorityKey
+                                    );
+                                }
+                            },
                             plugins: {
                                 legend: { display: false }
                             },
@@ -268,11 +370,12 @@
 
                 // 3. Assignee workload (horizontal bar)
                 if (data.assigneeWorkload) {
+                    var assigneeNames = Object.keys(data.assigneeWorkload);
                     var assigneeCtx = document.getElementById('assigneeChart').getContext('2d');
                     new Chart(assigneeCtx, {
                         type: 'bar',
                         data: {
-                            labels: Object.keys(data.assigneeWorkload),
+                            labels: assigneeNames,
                             datasets: [{
                                 label: '할당된 업무',
                                 data: Object.values(data.assigneeWorkload),
@@ -285,6 +388,20 @@
                             indexAxis: 'y',
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    var idx = elements[0].index;
+                                    var name = assigneeNames[idx];
+                                    var issues = (data.issuesByAssignee || {})[name] || [];
+                                    var assigneeId = (data.assigneeIds || {})[name];
+                                    var linkUrl = '/spaces/' + spaceKey + '/issues' + (assigneeId ? '?assigneeId=' + assigneeId : '');
+                                    openReportModal(
+                                        name + ' 이슈 (' + issues.length + ')',
+                                        issues,
+                                        linkUrl
+                                    );
+                                }
+                            },
                             plugins: {
                                 legend: { display: false }
                             },
@@ -304,11 +421,12 @@
 
                 // 4. Sprint progress (doughnut)
                 if (data.sprintProgress && data.sprintProgress.hasActiveSprint) {
+                    var sprintCategories = ['완료', '진행 중', '할 일'];
                     var sprintCtx = document.getElementById('sprintChart').getContext('2d');
                     new Chart(sprintCtx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['완료', '진행 중', '할 일'],
+                            labels: sprintCategories,
                             datasets: [{
                                 data: [
                                     data.sprintProgress.done || 0,
@@ -322,6 +440,19 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    var idx = elements[0].index;
+                                    var category = sprintCategories[idx];
+                                    var issuesByCategory = (data.sprintProgress.issuesByCategory || {});
+                                    var issues = issuesByCategory[category] || [];
+                                    openReportModal(
+                                        data.sprintProgress.name + ' - ' + category + ' (' + issues.length + ')',
+                                        issues,
+                                        '/spaces/' + spaceKey + '/board'
+                                    );
+                                }
+                            },
                             plugins: {
                                 legend: {
                                     position: 'bottom',
@@ -371,6 +502,15 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function() {
+                                var issues = (data.sprintProgress && data.sprintProgress.allIssues) || [];
+                                var sprintName = (data.sprintProgress && data.sprintProgress.name) || '스프린트';
+                                openReportModal(
+                                    sprintName + ' 이슈 (' + issues.length + ')',
+                                    issues,
+                                    '/spaces/' + spaceKey + '/board'
+                                );
+                            },
                             plugins: {
                                 legend: {
                                     position: 'bottom',
@@ -443,6 +583,15 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function() {
+                                var issues = (data.sprintProgress && data.sprintProgress.allIssues) || [];
+                                var sprintName = (data.sprintProgress && data.sprintProgress.name) || '스프린트';
+                                openReportModal(
+                                    sprintName + ' 이슈 (' + issues.length + ')',
+                                    issues,
+                                    '/spaces/' + spaceKey + '/board'
+                                );
+                            },
                             plugins: {
                                 legend: {
                                     position: 'bottom',
@@ -508,6 +657,18 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    var idx = elements[0].index;
+                                    var sprintName = data.velocity.sprintNames[idx];
+                                    var issues = (data.velocity.sprintIssues || [])[idx] || [];
+                                    openReportModal(
+                                        sprintName + ' 이슈 (' + issues.length + ')',
+                                        issues,
+                                        '/spaces/' + spaceKey + '/backlog'
+                                    );
+                                }
+                            },
                             plugins: {
                                 legend: {
                                     position: 'bottom',

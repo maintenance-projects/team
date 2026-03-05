@@ -25,7 +25,9 @@
       "Bash(JAVA_HOME=\"/c/Users/rlack/.jdks/ms-21.0.7\" ./gradlew processResources:*)",
       "Bash(JAVA_HOME=\"/c/Users/rlack/.jdks/ms-21.0.7\" ./gradlew compileJava:*)",
       "Bash(bash:*)",
-      "Bash(./gradlew build:*)"
+      "Bash(./gradlew build:*)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Eclipse Adoptium/jdk-21.0.7.6-hotspot\" ./gradlew build:*)",
+      "Bash(JAVA_HOME=\"C:\\\\Users\\\\rlack\\\\.jdks\\\\ms-21.0.7\" ./gradlew build:*)"
     ]
   }
 }

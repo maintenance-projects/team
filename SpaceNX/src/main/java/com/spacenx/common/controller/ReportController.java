@@ -79,6 +79,38 @@ public class ReportController {
                 ));
         data.put("assigneeWorkload", assigneeCounts);
 
+        // Issue detail lists for modal drill-down
+        Map<String, List<Map<String, String>>> issuesByStatus = allIssues.stream()
+                .collect(Collectors.groupingBy(
+                        i -> i.getStatus().name(),
+                        Collectors.mapping(this::toIssueMap, Collectors.toList())
+                ));
+        data.put("issuesByStatus", issuesByStatus);
+
+        Map<String, List<Map<String, String>>> issuesByPriority = allIssues.stream()
+                .collect(Collectors.groupingBy(
+                        i -> i.getPriority() != null ? i.getPriority().name() : "NONE",
+                        Collectors.mapping(this::toIssueMap, Collectors.toList())
+                ));
+        data.put("issuesByPriority", issuesByPriority);
+
+        Map<String, List<Map<String, String>>> issuesByAssignee = allIssues.stream()
+                .collect(Collectors.groupingBy(
+                        i -> i.getAssignee() != null ? i.getAssignee().getDisplayName() : "Unassigned",
+                        Collectors.mapping(this::toIssueMap, Collectors.toList())
+                ));
+        data.put("issuesByAssignee", issuesByAssignee);
+
+        // Assignee ID mapping for filter links
+        Map<String, Long> assigneeIds = allIssues.stream()
+                .filter(i -> i.getAssignee() != null)
+                .collect(Collectors.toMap(
+                        i -> i.getAssignee().getDisplayName(),
+                        i -> i.getAssignee().getId(),
+                        (a, b) -> a
+                ));
+        data.put("assigneeIds", assigneeIds);
+
         // Sprint progress - template expects an object with hasActiveSprint boolean
         List<Sprint> sprints = sprintService.getSprintsBySpace(space.getId());
         Map<String, Object> sprintProgress = new HashMap<>();
@@ -107,6 +139,21 @@ public class ReportController {
             sprintProgress.put("done", doneCount);
             sprintProgress.put("inProgress", inProgressCount);
             sprintProgress.put("todo", todoCount);
+
+            // Issue detail lists grouped by status category for sprint progress modal
+            Map<String, List<Map<String, String>>> sprintIssuesByCategory = new HashMap<>();
+            sprintIssuesByCategory.put("완료", activeSprintIssues.stream()
+                    .filter(i -> i.getStatus() == IssueStatus.DONE)
+                    .map(this::toIssueMap).collect(Collectors.toList()));
+            sprintIssuesByCategory.put("진행 중", activeSprintIssues.stream()
+                    .filter(i -> i.getStatus() == IssueStatus.IN_PROGRESS || i.getStatus() == IssueStatus.IN_REVIEW)
+                    .map(this::toIssueMap).collect(Collectors.toList()));
+            sprintIssuesByCategory.put("할 일", activeSprintIssues.stream()
+                    .filter(i -> i.getStatus() == IssueStatus.TODO)
+                    .map(this::toIssueMap).collect(Collectors.toList()));
+            sprintProgress.put("issuesByCategory", sprintIssuesByCategory);
+            sprintProgress.put("allIssues", activeSprintIssues.stream()
+                    .map(this::toIssueMap).collect(Collectors.toList()));
         } else {
             sprintProgress.put("hasActiveSprint", false);
         }
@@ -289,9 +336,12 @@ public class ReportController {
         List<String> sprintNames = new ArrayList<>();
         List<Number> completedPoints = new ArrayList<>();
         List<Number> totalPoints = new ArrayList<>();
+        List<Long> sprintIds = new ArrayList<>();
+        List<List<Map<String, String>>> sprintIssuesList = new ArrayList<>();
 
         for (Sprint sprint : velocitySprints) {
             sprintNames.add(sprint.getName());
+            sprintIds.add(sprint.getId());
             List<Issue> sprintIssues = issueService.getIssuesBySpaceAndSprint(spaceId, sprint.getId());
 
             boolean useStoryPoints = sprintIssues.stream().anyMatch(i -> i.getStoryPoints() != null && i.getStoryPoints() > 0);
@@ -307,12 +357,26 @@ public class ReportController {
 
             completedPoints.add(completed);
             totalPoints.add(total);
+            sprintIssuesList.add(sprintIssues.stream().map(this::toIssueMap).collect(Collectors.toList()));
         }
 
         velocity.put("sprintNames", sprintNames);
         velocity.put("completedPoints", completedPoints);
         velocity.put("totalPoints", totalPoints);
+        velocity.put("sprintIds", sprintIds);
+        velocity.put("sprintIssues", sprintIssuesList);
 
         return velocity;
+    }
+
+    private Map<String, String> toIssueMap(Issue issue) {
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("issueKey", issue.getIssueKey());
+        map.put("title", issue.getTitle());
+        map.put("status", issue.getStatus() != null ? issue.getStatus().name() : "");
+        map.put("priority", issue.getPriority() != null ? issue.getPriority().name() : "");
+        map.put("typeName", issue.getIssueType() != null ? issue.getIssueType().name() : "");
+        map.put("assigneeName", issue.getAssignee() != null ? issue.getAssignee().getDisplayName() : "");
+        return map;
     }
 }
