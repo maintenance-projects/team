@@ -22,4 +22,7 @@ public interface RepositoryMemberJpaRepository extends JpaRepository<RepositoryM
     Optional<RepositoryMember> findByGitRepositoryIdAndUserUsername(Long repositoryId, String username);
 
     boolean existsByGitRepositoryIdAndUserUsername(Long repositoryId, String username);
+
+    @Query("SELECT m FROM RepositoryMember m JOIN FETCH m.gitRepository g JOIN FETCH g.owner WHERE m.user.username = :username ORDER BY g.createdAt DESC")
+    List<RepositoryMember> findByUserUsernameWithRepository(@Param("username") String username);
 }

@@ -54,6 +54,33 @@
                     </div>
                 </div>
             </div>
+
+                <div class="card mt-4" th:if="${memberRepositories != null and !memberRepositories.isEmpty()}">
+                    <div class="card-header">
+                        <h5 class="mb-0">Member Repositories</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            <a th:each="repo : ${memberRepositories}"
+                               th:href="@{/{owner}/{name}(owner=${repo.ownerUsername}, name=${repo.name})}"
+                               class="list-group-item list-group-item-action">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <span th:text="${repo.ownerUsername}" class="text-muted"></span>
+                                            /
+                                            <span th:text="${repo.name}" class="fw-bold"></span>
+                                        </h6>
+                                        <small th:text="${repo.description}" class="text-muted"></small>
+                                    </div>
+                                    <span th:text="${repo.visibility}"
+                                          th:classappend="${repo.visibility.name() == 'PUBLIC'} ? 'badge bg-success' : 'badge bg-secondary'"></span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">

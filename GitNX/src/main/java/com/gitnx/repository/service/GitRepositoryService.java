@@ -252,6 +252,12 @@ public class GitRepositoryService {
                 .toList();
     }
 
+    public List<RepositoryDto> listAccessible(String username) {
+        return memberJpaRepository.findByUserUsernameWithRepository(username).stream()
+                .map(member -> RepositoryDto.from(member.getGitRepository()))
+                .toList();
+    }
+
     public GitRepository getByOwnerAndName(String owner, String name) {
         return repoJpaRepository.findByOwnerUsernameAndName(owner, name)
                 .orElseThrow(() -> new ResourceNotFoundException(

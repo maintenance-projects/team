@@ -56,8 +56,11 @@ public class AuthController {
 
     @GetMapping("/dashboard")
     public String dashboard(Model model, @AuthenticationPrincipal UserDetails userDetails) {
-        List<RepositoryDto> repositories = gitRepositoryService.listByOwner(userDetails.getUsername());
+        String username = userDetails.getUsername();
+        List<RepositoryDto> repositories = gitRepositoryService.listByOwner(username);
+        List<RepositoryDto> memberRepositories = gitRepositoryService.listAccessible(username);
         model.addAttribute("repositories", repositories);
+        model.addAttribute("memberRepositories", memberRepositories);
         return "dashboard/index";
     }
 
