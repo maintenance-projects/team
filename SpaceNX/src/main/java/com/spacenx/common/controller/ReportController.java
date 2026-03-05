@@ -63,7 +63,7 @@ public class ReportController {
         data.put("statusDistribution", statusCounts);
 
         // Issue counts by priority
-        List<Issue> allIssues = issueService.getIssuesBySpace(space.getId());
+        List<Issue> allIssues = issueService.getIssuesBySpaceWithAssignee(space.getId());
         Map<String, Long> priorityCounts = allIssues.stream()
                 .collect(Collectors.groupingBy(
                         i -> i.getPriority() != null ? i.getPriority().name() : "NONE",
@@ -92,7 +92,7 @@ public class ReportController {
         if (activeSprint != null) {
             sprintProgress.put("hasActiveSprint", true);
             sprintProgress.put("name", activeSprint.getName());
-            activeSprintIssues = issueService.getIssuesBySpaceAndSprint(space.getId(), activeSprint.getId());
+            activeSprintIssues = issueService.getIssuesBySpaceAndSprintWithAssignee(space.getId(), activeSprint.getId());
             long doneCount = activeSprintIssues.stream()
                     .filter(i -> i.getStatus() == IssueStatus.DONE)
                     .count();
