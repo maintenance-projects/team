@@ -29,7 +29,8 @@
       "Bash(JAVA_HOME=\"/c/Program Files/Eclipse Adoptium/jdk-21.0.7.6-hotspot\" ./gradlew build:*)",
       "Bash(JAVA_HOME=\"C:\\\\Users\\\\rlack\\\\.jdks\\\\ms-21.0.7\" ./gradlew build:*)",
       "Bash(xargs grep:*)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "WebFetch(domain:125.131.105.208)"
     ]
   }
 }
