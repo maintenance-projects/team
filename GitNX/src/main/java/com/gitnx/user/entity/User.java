@@ -35,6 +35,13 @@ public class User extends BaseTimeEntity {
     @Column(length = 255)
     private String avatarUrl;
 
+    @Column(length = 20)
+    @Builder.Default
+    private String provider = "LOCAL";
+
+    @Column(length = 100)
+    private String providerId;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean enabled = true;

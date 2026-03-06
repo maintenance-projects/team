@@ -1,6 +1,8 @@
 package com.gitnx.common.config;
 
+import com.gitnx.user.service.CustomOAuth2UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -17,7 +19,10 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomOAuth2UserService customOAuth2UserService;
 
     /**
      * Git HTTP protocol chain - handles /repo/** requests.
@@ -62,7 +67,9 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/css/**"),
                         new AntPathRequestMatcher("/js/**"),
                         new AntPathRequestMatcher("/img/**"),
-                        new AntPathRequestMatcher("/error/**")
+                        new AntPathRequestMatcher("/error/**"),
+                        new AntPathRequestMatcher("/oauth2/**"),
+                        new AntPathRequestMatcher("/login/oauth2/code/**")
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -72,6 +79,11 @@ public class SecurityConfig {
                 .defaultSuccessUrl("/dashboard", true)
                 .failureUrl("/login?error=true")
                 .permitAll()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .loginPage("/login")
+                .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))
+                .defaultSuccessUrl("/dashboard", true)
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")

@@ -17,6 +17,15 @@ spring:
         format_sql: true
     open-in-view: false
 
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: Ov23limGAWG26grDVWUt
+            client-secret: cec8ac5f8a93e91d309d2ba176a2ed8eb9e82bac
+            scope: user:email,read:user
+
   thymeleaf:
     cache: false
     prefix: classpath:/templates/
