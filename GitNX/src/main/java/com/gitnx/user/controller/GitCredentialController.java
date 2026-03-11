@@ -58,6 +58,38 @@ public class GitCredentialController {
     }
 
     /**
+     * 커스텀 credential helper에서 직접 로그인 검증 (username/password)
+     */
+    @PostMapping("/api/git/auth/verify")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> verifyAuth(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+
+        User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElse(null);
+
+        if (user == null || !user.isEnabled()) {
+            return ResponseEntity.ok(Map.of("status", "fail"));
+        }
+
+        // GitHub OAuth 사용자: 아이디만 확인
+        if ("GITHUB".equals(user.getProvider())) {
+            log.info("Git auth verified via GitHub OAuth user: {}", user.getUsername());
+            return ResponseEntity.ok(Map.of("status", "ok", "username", user.getUsername()));
+        }
+
+        // 일반 사용자: 비밀번호 확인
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            log.info("Git auth verified via password for user: {}", user.getUsername());
+            return ResponseEntity.ok(Map.of("status", "ok", "username", user.getUsername()));
+        }
+
+        return ResponseEntity.ok(Map.of("status", "fail"));
+    }
+
+    /**
      * 브라우저에서 보여줄 인증 페이지
      */
     @GetMapping("/git-auth/{sessionId}")
