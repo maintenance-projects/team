@@ -69,12 +69,43 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="accessToken" class="form-label fw-bold">Access Token <span class="text-muted fw-normal">(optional)</span></label>
-                        <input type="password" class="form-control" id="accessToken"
-                               th:field="*{accessToken}" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-                        <small class="form-text text-muted">
-                            Required for private repositories. Use a GitHub Personal Access Token (PAT) with repo scope.
-                        </small>
+                        <label class="form-label fw-bold">Authentication <span class="text-muted fw-normal">(for private repositories)</span></label>
+
+                        <div th:if="${hasGithubToken}" class="mb-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="authMethod" id="authGithub"
+                                       value="github" checked onchange="toggleAuthMethod()">
+                                <label class="form-check-label" for="authGithub">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github me-1" viewBox="0 0 16 16">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    GitHub 계정으로 인증
+                                    <span class="badge bg-success ms-1">연결됨</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="authMethod" id="authToken"
+                                       value="token" onchange="toggleAuthMethod()">
+                                <label class="form-check-label" for="authToken">
+                                    Access Token 직접 입력
+                                </label>
+                            </div>
+                            <input type="hidden" th:field="*{useGithubAuth}" id="useGithubAuth">
+                        </div>
+
+                        <div id="tokenInputSection" th:classappend="${hasGithubToken} ? 'd-none' : ''">
+                            <input type="password" class="form-control" id="accessToken"
+                                   th:field="*{accessToken}" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                            <small class="form-text text-muted">
+                                Required for private repositories. Use a GitHub Personal Access Token (PAT) with repo scope.
+                            </small>
+                        </div>
+
+                        <div th:unless="${hasGithubToken}">
+                            <small class="form-text text-muted mt-2 d-block">
+                                GitHub OAuth로 로그인하면 토큰 입력 없이 private 레포지토리를 import할 수 있습니다.
+                            </small>
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -85,6 +116,30 @@
             </div>
         </div>
     </div>
+    <script>
+        function toggleAuthMethod() {
+            var githubRadio = document.getElementById('authGithub');
+            var tokenSection = document.getElementById('tokenInputSection');
+            var useGithubAuth = document.getElementById('useGithubAuth');
+            var accessToken = document.getElementById('accessToken');
+
+            if (githubRadio && githubRadio.checked) {
+                tokenSection.classList.add('d-none');
+                useGithubAuth.value = 'true';
+                accessToken.value = '';
+            } else {
+                tokenSection.classList.remove('d-none');
+                if (useGithubAuth) useGithubAuth.value = 'false';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var githubRadio = document.getElementById('authGithub');
+            if (githubRadio) {
+                toggleAuthMethod();
+            }
+        });
+    </script>
 </div>
 </body>
 </html>

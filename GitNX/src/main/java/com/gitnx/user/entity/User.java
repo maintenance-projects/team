@@ -42,6 +42,9 @@ public class User extends BaseTimeEntity {
     @Column(length = 100)
     private String providerId;
 
+    @Column(length = 500)
+    private String githubAccessToken;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean enabled = true;

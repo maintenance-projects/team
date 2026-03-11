@@ -39,6 +39,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         User user = userRepository.findByProviderAndProviderId("GITHUB", githubId)
                 .orElseGet(() -> findOrCreateUser(githubId, login, email, avatarUrl, name));
 
+        // GitHub access token 저장 (private repo import용)
+        String accessToken = userRequest.getAccessToken().getTokenValue();
+        user.setGithubAccessToken(accessToken);
+        userRepository.save(user);
+
         Map<String, Object> userAttributes = new HashMap<>(attributes);
         userAttributes.put("username", user.getUsername());
 

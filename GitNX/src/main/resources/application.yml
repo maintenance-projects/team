@@ -25,7 +25,7 @@ spring:
           github:
             client-id: Ov23limn37fEIpyY1gJO
             client-secret: 73bf4f0c0632d4e3dfe0f7575ff14dc71a2a39d4
-            scope: user:email,read:user
+            scope: user:email,read:user,repo
 
   thymeleaf:
     cache: false

@@ -21,4 +21,6 @@ public class ImportRepositoryRequest {
     private RepositoryVisibility visibility = RepositoryVisibility.PRIVATE;
 
     private String accessToken;
+
+    private boolean useGithubAuth;
 }
