@@ -24,6 +24,7 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final GitAuthenticationProvider gitAuthenticationProvider;
+    private final com.gitnx.user.service.GitNxOAuth2SuccessHandler gitNxOAuth2SuccessHandler;
 
     /**
      * Git HTTP protocol chain - handles /repo/** requests.
@@ -71,7 +72,9 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/img/**"),
                         new AntPathRequestMatcher("/error/**"),
                         new AntPathRequestMatcher("/oauth2/**"),
-                        new AntPathRequestMatcher("/login/oauth2/code/**")
+                        new AntPathRequestMatcher("/login/oauth2/code/**"),
+                        new AntPathRequestMatcher("/api/git/auth/**"),
+                        new AntPathRequestMatcher("/git-auth/**")
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -85,7 +88,7 @@ public class SecurityConfig {
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/login")
                 .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))
-                .defaultSuccessUrl("/dashboard", true)
+                .successHandler(gitNxOAuth2SuccessHandler)
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
