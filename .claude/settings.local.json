@@ -30,7 +30,8 @@
       "Bash(JAVA_HOME=\"C:\\\\Users\\\\rlack\\\\.jdks\\\\ms-21.0.7\" ./gradlew build:*)",
       "Bash(xargs grep:*)",
       "Bash(export:*)",
-      "WebFetch(domain:125.131.105.208)"
+      "WebFetch(domain:125.131.105.208)",
+      "Bash(/dev/null:*)"
     ]
   }
 }
