@@ -1,0 +1,5 @@
+.gradle
+build
+*.pid
+*.log
+.idea
