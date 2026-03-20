@@ -40,8 +40,7 @@ public class RepositoryMemberService {
             throw new IllegalArgumentException("Cannot assign OWNER role");
         }
 
-        User targetUser = userService.findByUsername(targetUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + targetUsername));
+        User targetUser = userService.findOrCreateFromWorkbench(targetUsername);
 
         if (memberJpaRepository.existsByGitRepositoryIdAndUserId(repo.getId(), targetUser.getId())) {
             throw new IllegalArgumentException("User '" + targetUsername + "' is already a member");
