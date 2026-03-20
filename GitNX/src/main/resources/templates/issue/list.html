@@ -47,6 +47,9 @@
                     <small class="text-muted">
                         opened by <span th:text="${issue.author.username}"></span>
                         on <span th:text="${#temporals.format(issue.createdAt, 'yyyy-MM-dd')}"></span>
+                        <span th:if="${issue.assignee != null}">
+                            · assigned to <span th:text="${issue.assignee.username}"></span>
+                        </span>
                     </small>
                 </a>
                 <div th:if="${issues.content.isEmpty()}" class="list-group-item text-center text-muted py-4">

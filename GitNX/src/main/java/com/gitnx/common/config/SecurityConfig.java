@@ -15,6 +15,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -25,6 +28,39 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final GitAuthenticationProvider gitAuthenticationProvider;
     private final com.gitnx.user.service.GitNxOAuth2SuccessHandler gitNxOAuth2SuccessHandler;
+
+    /**
+     * REST API chain - handles /api/** requests.
+     * Uses HTTP Basic auth (stateless) with CORS for workbench frontend.
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/api/**")
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().permitAll()
+            )
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(apiCorsConfigurationSource()))
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            );
+        return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource apiCorsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedOriginPattern("*");
+        config.addAllowedMethod("*");
+        config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+        return source;
+    }
 
     /**
      * Git HTTP protocol chain - handles /repo/** requests.

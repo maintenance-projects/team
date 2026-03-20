@@ -11,6 +11,10 @@ import com.gitnx.repository.entity.RepositoryMember;
 import com.gitnx.repository.enums.RepositoryRole;
 import com.gitnx.repository.repository.GitRepositoryJpaRepository;
 import com.gitnx.repository.repository.RepositoryMemberJpaRepository;
+import com.gitnx.issue.repository.IssueJpaRepository;
+import com.gitnx.issue.repository.LabelJpaRepository;
+import com.gitnx.issue.repository.MilestoneJpaRepository;
+import com.gitnx.mergerequest.repository.MergeRequestJpaRepository;
 import com.gitnx.user.entity.User;
 import com.gitnx.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,10 @@ public class GitRepositoryService {
 
     private final GitRepositoryJpaRepository repoJpaRepository;
     private final RepositoryMemberJpaRepository memberJpaRepository;
+    private final IssueJpaRepository issueJpaRepository;
+    private final LabelJpaRepository labelJpaRepository;
+    private final MilestoneJpaRepository milestoneJpaRepository;
+    private final MergeRequestJpaRepository mergeRequestJpaRepository;
     private final UserService userService;
     private final JGitConfig jGitConfig;
 
@@ -245,6 +253,12 @@ public class GitRepositoryService {
         }
     }
 
+    public List<RepositoryDto> listAll() {
+        return repoJpaRepository.findAll().stream()
+                .map(RepositoryDto::from)
+                .toList();
+    }
+
     public List<RepositoryDto> listByOwner(String username) {
         User owner = userService.getByUsername(username);
         return repoJpaRepository.findByOwnerOrderByCreatedAtDesc(owner).stream()
@@ -267,6 +281,14 @@ public class GitRepositoryService {
     @Transactional
     public void delete(String owner, String name) {
         GitRepository repo = getByOwnerAndName(owner, name);
+        Long repoId = repo.getId();
+
+        // Delete related entities first
+        mergeRequestJpaRepository.deleteAll(mergeRequestJpaRepository.findByGitRepositoryId(repoId, org.springframework.data.domain.Pageable.unpaged()));
+        issueJpaRepository.deleteAll(issueJpaRepository.findByGitRepositoryId(repoId, org.springframework.data.domain.Pageable.unpaged()));
+        labelJpaRepository.deleteAll(labelJpaRepository.findByGitRepositoryId(repoId));
+        milestoneJpaRepository.deleteAll(milestoneJpaRepository.findByGitRepositoryId(repoId));
+        memberJpaRepository.deleteAll(memberJpaRepository.findByGitRepositoryId(repoId));
 
         // Delete bare repo from disk
         File repoDir = new File(repo.getDiskPath());

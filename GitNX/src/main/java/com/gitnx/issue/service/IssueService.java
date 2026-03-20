@@ -46,6 +46,7 @@ public class IssueService {
                 .body(body)
                 .gitRepository(repo)
                 .author(author)
+                .assignee(author)
                 .build();
 
         return issueRepository.save(issue);

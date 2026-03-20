@@ -4,7 +4,7 @@ spring:
     name: gitnx
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/gitnx
+    url: jdbc:postgresql://125.131.105.208:5432/gitnx
     username: root
     password: "ultari12#$"
     driver-class-name: org.postgresql.Driver
@@ -38,7 +38,7 @@ spring:
       max-request-size: 50MB
 
 server:
-  port: 8082
+  port: 9090
   servlet:
     session:
       timeout: 30m

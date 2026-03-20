@@ -33,7 +33,7 @@
                         <div>
                             <a th:href="@{/{o}/{r}/commit/{h}(o=${owner}, r=${repo}, h=${commit.hash})}"
                                class="text-decoration-none fw-bold"
-                               th:text="${commit.message.contains(T(System).lineSeparator()) ? commit.message.substring(0, commit.message.indexOf(T(System).lineSeparator())) : commit.message}">
+                               th:text="${commit.message.split('\n')[0]}">
                             </a>
                             <div class="text-muted small mt-1">
                                 <span th:text="${commit.authorName}"></span> committed on

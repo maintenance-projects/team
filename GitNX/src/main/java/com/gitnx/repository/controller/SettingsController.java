@@ -91,4 +91,16 @@ public class SettingsController {
         }
         return "redirect:/" + owner + "/" + repo + "/settings";
     }
+
+    @PostMapping("/{owner}/{repo}/settings/delete")
+    public String deleteRepository(@PathVariable String owner, @PathVariable String repo,
+                                   @AuthenticationPrincipal UserDetails userDetails,
+                                   RedirectAttributes redirectAttributes) {
+        if (!memberService.isOwner(owner, repo, userDetails.getUsername())) {
+            throw new AccessDeniedException("Only the repository owner can delete this repository");
+        }
+        gitRepositoryService.delete(owner, repo);
+        redirectAttributes.addFlashAttribute("successMessage", "Repository deleted successfully");
+        return "redirect:/dashboard";
+    }
 }

@@ -64,6 +64,48 @@ public class BranchService {
         }
     }
 
+    public BranchDto createBranch(String owner, String repoName, String branchName, String sourceBranch) {
+        GitRepository gitRepo = gitRepositoryService.getByOwnerAndName(owner, repoName);
+        if (sourceBranch == null || sourceBranch.isBlank()) {
+            sourceBranch = gitRepo.getDefaultBranch();
+        }
+
+        try (Repository repo = codeBrowserService.openRepository(owner, repoName)) {
+            if (repo.resolve("refs/heads/" + sourceBranch) == null) {
+                throw new IllegalArgumentException("Source branch '" + sourceBranch + "' does not exist");
+            }
+            if (repo.resolve("refs/heads/" + branchName) != null) {
+                throw new IllegalArgumentException("Branch '" + branchName + "' already exists");
+            }
+
+            Git git = new Git(repo);
+            git.branchCreate()
+                    .setName(branchName)
+                    .setStartPoint("refs/heads/" + sourceBranch)
+                    .call();
+
+            Ref newRef = repo.exactRef("refs/heads/" + branchName);
+            String commitHash = "";
+            String commitMessage = "";
+            try (RevWalk revWalk = new RevWalk(repo)) {
+                RevCommit commit = revWalk.parseCommit(newRef.getObjectId());
+                commitHash = commit.getName().substring(0, 7);
+                commitMessage = commit.getShortMessage();
+            }
+
+            return BranchDto.builder()
+                    .name(branchName)
+                    .isDefault(false)
+                    .lastCommitHash(commitHash)
+                    .lastCommitMessage(commitMessage)
+                    .build();
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new GitOperationException("Failed to create branch", e);
+        }
+    }
+
     public boolean branchExists(String owner, String repoName, String branchName) {
         try (Repository repo = codeBrowserService.openRepository(owner, repoName)) {
             return repo.resolve("refs/heads/" + branchName) != null;
