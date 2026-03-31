@@ -102,7 +102,6 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         new AntPathRequestMatcher("/login"),
-                        new AntPathRequestMatcher("/register"),
                         new AntPathRequestMatcher("/css/**"),
                         new AntPathRequestMatcher("/js/**"),
                         new AntPathRequestMatcher("/img/**"),
@@ -113,13 +112,6 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/git-auth/**")
                 ).permitAll()
                 .anyRequest().authenticated()
-            )
-            .formLogin(form -> form
-                .loginPage("/login")
-                .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/dashboard", true)
-                .failureUrl("/login?error=true")
-                .permitAll()
             )
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/login")

@@ -20,7 +20,6 @@ public class ImportRepositoryRequest {
 
     private RepositoryVisibility visibility = RepositoryVisibility.PRIVATE;
 
+    // 서버에서 자동 주입 (GitHub OAuth 토큰)
     private String accessToken;
-
-    private boolean useGithubAuth;
 }

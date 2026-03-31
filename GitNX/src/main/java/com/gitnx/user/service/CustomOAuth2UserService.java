@@ -36,12 +36,20 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String avatarUrl = (String) attributes.get("avatar_url");
         String name = (String) attributes.get("name");
 
+        String accessToken = userRequest.getAccessToken().getTokenValue();
+
+        // 기존 사용자 찾거나 자동 회원가입
         User user = userRepository.findByProviderAndProviderId("GITHUB", githubId)
                 .orElseGet(() -> findOrCreateUser(githubId, login, email, avatarUrl, name));
 
-        // GitHub access token 저장 (private repo import용)
-        String accessToken = userRequest.getAccessToken().getTokenValue();
+        // 매 로그인마다 토큰 갱신 + 프로필 업데이트
         user.setGithubAccessToken(accessToken);
+        if (avatarUrl != null) {
+            user.setAvatarUrl(avatarUrl);
+        }
+        if (name != null) {
+            user.setDisplayName(name);
+        }
         userRepository.save(user);
 
         Map<String, Object> userAttributes = new HashMap<>(attributes);
@@ -55,7 +63,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User findOrCreateUser(String githubId, String login, String email, String avatarUrl, String name) {
-        // Try to link to existing account by email
+        // 이메일로 기존 계정 검색
         if (email != null) {
             Optional<User> existingByEmail = userRepository.findByEmail(email);
             if (existingByEmail.isPresent()) {
@@ -70,7 +78,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             }
         }
 
-        // Try to link to existing account by username
+        // username으로 기존 계정 검색
         Optional<User> existingByUsername = userRepository.findByUsername(login);
         if (existingByUsername.isPresent()) {
             User existing = existingByUsername.get();
@@ -83,7 +91,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             return userRepository.save(existing);
         }
 
-        // Create new user
+        // 자동 회원가입
         String userEmail = email != null ? email : login + "@github.user";
         User newUser = User.builder()
                 .username(login)
@@ -95,7 +103,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .providerId(githubId)
                 .build();
 
-        log.info("Created new user from GitHub OAuth: {}", login);
+        log.info("Auto-registered new user from GitHub: {}", login);
         return userRepository.save(newUser);
     }
 }

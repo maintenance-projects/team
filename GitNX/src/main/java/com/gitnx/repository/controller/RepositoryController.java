@@ -53,9 +53,8 @@ public class RepositoryController {
     }
 
     @GetMapping("/import")
-    public String importRepoForm(Model model, @AuthenticationPrincipal UserDetails userDetails) {
+    public String importRepoForm(Model model) {
         model.addAttribute("importRequest", new ImportRepositoryRequest());
-        addGithubTokenFlag(model, userDetails);
         return "repository/import";
     }
 
@@ -63,23 +62,15 @@ public class RepositoryController {
     public String importRepo(@Valid @ModelAttribute("importRequest") ImportRepositoryRequest request,
                              BindingResult bindingResult,
                              @AuthenticationPrincipal UserDetails userDetails,
-                             Model model,
                              RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            addGithubTokenFlag(model, userDetails);
             return "repository/import";
         }
 
-        // GitHub OAuth 인증 선택 시 저장된 토큰 사용
-        if (request.isUseGithubAuth()) {
-            User user = userService.getByUsername(userDetails.getUsername());
-            if (user.getGithubAccessToken() != null && !user.getGithubAccessToken().isBlank()) {
-                request.setAccessToken(user.getGithubAccessToken());
-            } else {
-                bindingResult.reject("error", "GitHub 계정이 연결되어 있지 않습니다. Access Token을 직접 입력해주세요.");
-                addGithubTokenFlag(model, userDetails);
-                return "repository/import";
-            }
+        // GitHub OAuth 토큰 자동 주입
+        User user = userService.getByUsername(userDetails.getUsername());
+        if (user.getGithubAccessToken() != null && !user.getGithubAccessToken().isBlank()) {
+            request.setAccessToken(user.getGithubAccessToken());
         }
 
         try {
@@ -89,20 +80,10 @@ public class RepositoryController {
             return "redirect:/" + userDetails.getUsername() + "/" + imported.getName();
         } catch (IllegalArgumentException e) {
             bindingResult.reject("error", e.getMessage());
-            addGithubTokenFlag(model, userDetails);
             return "repository/import";
         } catch (Exception e) {
             bindingResult.reject("error", "Failed to import repository: " + e.getMessage());
-            addGithubTokenFlag(model, userDetails);
             return "repository/import";
         }
-    }
-
-    private void addGithubTokenFlag(Model model, UserDetails userDetails) {
-        User user = userService.getByUsername(userDetails.getUsername());
-        boolean hasGithubToken = "GITHUB".equals(user.getProvider())
-                && user.getGithubAccessToken() != null
-                && !user.getGithubAccessToken().isBlank();
-        model.addAttribute("hasGithubToken", hasGithubToken);
     }
 }
