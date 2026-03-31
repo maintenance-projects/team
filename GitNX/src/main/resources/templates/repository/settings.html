@@ -38,7 +38,8 @@
                         <div>
                             <label class="form-label small">Role</label>
                             <select name="role" class="form-select form-select-sm">
-                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"></option>
+                                <option value="MEMBER" selected>Member</option>
+                                <option value="OWNER">Owner</option>
                             </select>
                         </div>
                         <div>
@@ -72,22 +73,12 @@
                                th:text="${member.user.displayName}"></small>
                     </td>
                     <td class="align-middle">
-                        <!-- OWNER: static badge -->
                         <span th:if="${member.role.name() == 'OWNER'}"
-                              class="badge bg-warning text-dark">OWNER</span>
-                        <!-- Non-OWNER: role change dropdown -->
-                        <form th:unless="${member.role.name() == 'OWNER'}"
-                              th:action="@{/{o}/{r}/settings/members/{mid}/role(o=${owner}, r=${repo}, mid=${member.id})}"
-                              method="post" class="d-inline">
-                            <select name="role" class="form-select form-select-sm d-inline-block"
-                                    style="width: auto;" onchange="this.form.submit()">
-                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"
-                                        th:selected="${r == member.role}"></option>
-                            </select>
-                        </form>
+                              class="badge bg-warning text-dark">Owner</span>
+                        <span th:unless="${member.role.name() == 'OWNER'}"
+                              class="badge bg-info">Member</span>
                     </td>
                     <td class="align-middle">
-                        <!-- Remove button: only for non-owners -->
                         <form th:unless="${member.role.name() == 'OWNER'}"
                               th:action="@{/{o}/{r}/settings/members/{mid}/delete(o=${owner}, r=${repo}, mid=${member.id})}"
                               method="post" class="d-inline"

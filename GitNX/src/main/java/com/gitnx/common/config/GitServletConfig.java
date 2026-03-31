@@ -1,8 +1,6 @@
 package com.gitnx.common.config;
 
 import com.gitnx.repository.entity.GitRepository;
-import com.gitnx.repository.entity.RepositoryMember;
-import com.gitnx.repository.enums.RepositoryRole;
 import com.gitnx.repository.enums.RepositoryVisibility;
 import com.gitnx.repository.repository.GitRepositoryJpaRepository;
 import com.gitnx.repository.repository.RepositoryMemberJpaRepository;
@@ -134,7 +132,7 @@ public class GitServletConfig {
 
     /**
      * Receive pack factory - allows push only for members with write permission.
-     * OWNER, MAINTAINER, DEVELOPER can push. GUEST cannot.
+     * OWNER and MEMBER can push.
      */
     private class GitNxReceivePackFactory implements ReceivePackFactory<HttpServletRequest> {
         @Override
@@ -151,18 +149,12 @@ public class GitServletConfig {
                 throw new ServiceNotAuthorizedException();
             }
 
-            // Check if user has push permission (OWNER, MAINTAINER, or DEVELOPER)
-            Optional<RepositoryMember> member = memberJpaRepository
-                    .findByGitRepositoryIdAndUserUsername(gitRepo.getId(), user);
+            // Check if user is a member (OWNER or MEMBER can push)
+            boolean isMember = memberJpaRepository
+                    .existsByGitRepositoryIdAndUserUsername(gitRepo.getId(), user);
 
-            if (member.isEmpty()) {
+            if (!isMember) {
                 log.warn("Push denied: user '{}' is not a member of repository '{}'", user, gitRepo.getName());
-                throw new ServiceNotAuthorizedException();
-            }
-
-            RepositoryRole role = member.get().getRole();
-            if (role == RepositoryRole.GUEST) {
-                log.warn("Push denied: user '{}' has GUEST role in repository '{}'", user, gitRepo.getName());
                 throw new ServiceNotAuthorizedException();
             }
 

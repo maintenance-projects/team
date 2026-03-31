@@ -7,6 +7,12 @@ import com.gitnx.repository.service.CodeBrowserService;
 import com.gitnx.repository.service.GitRepositoryService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ArchiveCommand;
+import org.eclipse.jgit.archive.ZipFormat;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -17,6 +23,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -114,6 +122,50 @@ public class CodeBrowserController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileContent.getName() + "\"")
                 .contentType(mediaType)
                 .body(data);
+    }
+
+    @GetMapping("/{owner}/{repo}/archive/{branch}.zip")
+    @ResponseBody
+    public ResponseEntity<byte[]> downloadZip(@PathVariable String owner, @PathVariable String repo,
+                                               @PathVariable String branch) {
+        File repoDir = gitRepositoryService.getRepoDiskPath(owner, repo);
+
+        try {
+            ArchiveCommand.registerFormat("zip", new ZipFormat());
+
+            Repository repository = new FileRepositoryBuilder()
+                    .setGitDir(repoDir)
+                    .readEnvironment()
+                    .build();
+
+            ObjectId treeId = repository.resolve(branch);
+            if (treeId == null) {
+                repository.close();
+                throw new com.gitnx.common.exception.ResourceNotFoundException(
+                        "Branch not found: " + branch);
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (Git git = new Git(repository)) {
+                git.archive()
+                        .setTree(treeId)
+                        .setFormat("zip")
+                        .setOutputStream(out)
+                        .call();
+            }
+            repository.close();
+            ArchiveCommand.unregisterFormat("zip");
+
+            String filename = repo + "-" + branch + ".zip";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(out.toByteArray());
+        } catch (com.gitnx.common.exception.ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new com.gitnx.common.exception.GitOperationException("Failed to create archive", e);
+        }
     }
 
     private void populateRepoModel(Model model, String owner, String repo, String branch, String path) {

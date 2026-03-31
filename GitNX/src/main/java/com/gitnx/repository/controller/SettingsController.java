@@ -41,7 +41,6 @@ public class SettingsController {
         model.addAttribute("repo", repo);
         model.addAttribute("gitRepo", gitRepo);
         model.addAttribute("members", members);
-        model.addAttribute("roles", List.of(RepositoryRole.MAINTAINER, RepositoryRole.DEVELOPER, RepositoryRole.GUEST));
         model.addAttribute("activeTab", "settings");
 
         return "repository/settings";
@@ -57,21 +56,6 @@ public class SettingsController {
             memberService.addMember(owner, repo, username, role, userDetails.getUsername());
             redirectAttributes.addFlashAttribute("successMessage",
                     "Member '" + username + "' added successfully");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
-        return "redirect:/" + owner + "/" + repo + "/settings";
-    }
-
-    @PostMapping("/{owner}/{repo}/settings/members/{memberId}/role")
-    public String changeRole(@PathVariable String owner, @PathVariable String repo,
-                             @PathVariable Long memberId,
-                             @RequestParam RepositoryRole role,
-                             @AuthenticationPrincipal UserDetails userDetails,
-                             RedirectAttributes redirectAttributes) {
-        try {
-            memberService.changeRole(owner, repo, memberId, role, userDetails.getUsername());
-            redirectAttributes.addFlashAttribute("successMessage", "Role updated successfully");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }

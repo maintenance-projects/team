@@ -49,15 +49,15 @@
                 <div class="dropdown">
                     <button class="btn btn-success btn-sm dropdown-toggle" type="button"
                             data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                        &#11015; Clone
+                        &#11015; Code
                     </button>
                     <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 360px;">
                         <h6 class="dropdown-header px-0">Clone with HTTP</h6>
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control" th:value="${cloneUrl}"
                                    id="cloneUrlInput" readonly onclick="this.select()">
-                            <button class="btn btn-outline-secondary" type="button"
-                                    onclick="navigator.clipboard.writeText(document.getElementById('cloneUrlInput').value).then(()=>{this.textContent='Copied!'; setTimeout(()=>{this.textContent='Copy';},2000);})">
+                            <button class="btn btn-outline-secondary" type="button" id="copyBtn"
+                                    onclick="copyCloneUrl()">
                                 Copy
                             </button>
                         </div>
@@ -66,8 +66,31 @@
                                 <code>git clone <span th:text="${cloneUrl}"></span></code>
                             </small>
                         </div>
+                        <hr class="my-2">
+                        <a th:href="@{/{o}/{r}/archive/{b}.zip(o=${owner}, r=${repo}, b=${currentBranch})}"
+                           class="btn btn-outline-secondary btn-sm w-100">
+                            Download ZIP
+                        </a>
                     </div>
                 </div>
+                <script>
+                    function copyCloneUrl() {
+                        var input = document.getElementById('cloneUrlInput');
+                        var btn = document.getElementById('copyBtn');
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(input.value).then(function() {
+                                btn.textContent = 'Copied!';
+                                setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+                            });
+                        } else {
+                            input.select();
+                            input.setSelectionRange(0, 99999);
+                            document.execCommand('copy');
+                            btn.textContent = 'Copied!';
+                            setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+                        }
+                    }
+                </script>
             </div>
         </div>
 

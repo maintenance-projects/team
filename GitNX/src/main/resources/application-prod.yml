@@ -24,7 +24,7 @@ gitnx:
   repos:
     base-path: ${GITNX_REPOS_PATH:/opt/gitnx/repos}
   clone:
-    http-base-url: ${GITNX_CLONE_URL:http://localhost:9090/repo}
+    http-base-url: ${GITNX_CLONE_URL:https://git.ultari.co.kr/repo}
 
 logging:
   level:

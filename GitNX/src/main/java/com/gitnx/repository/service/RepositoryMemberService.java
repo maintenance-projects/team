@@ -36,10 +36,6 @@ public class RepositoryMemberService {
         GitRepository repo = gitRepositoryService.getByOwnerAndName(ownerUsername, repoName);
         verifyOwner(repo, currentUsername);
 
-        if (role == RepositoryRole.OWNER) {
-            throw new IllegalArgumentException("Cannot assign OWNER role");
-        }
-
         User targetUser = userService.findOrCreateFromWorkbench(targetUsername);
 
         if (memberJpaRepository.existsByGitRepositoryIdAndUserId(repo.getId(), targetUser.getId())) {
@@ -55,29 +51,6 @@ public class RepositoryMemberService {
         memberJpaRepository.save(member);
         log.info("Added member '{}' with role {} to repository '{}/{}'",
                 targetUsername, role, ownerUsername, repoName);
-    }
-
-    @Transactional
-    public void changeRole(String ownerUsername, String repoName,
-                           Long memberId, RepositoryRole newRole, String currentUsername) {
-        GitRepository repo = gitRepositoryService.getByOwnerAndName(ownerUsername, repoName);
-        verifyOwner(repo, currentUsername);
-
-        if (newRole == RepositoryRole.OWNER) {
-            throw new IllegalArgumentException("Cannot assign OWNER role");
-        }
-
-        RepositoryMember member = memberJpaRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
-
-        if (member.getRole() == RepositoryRole.OWNER) {
-            throw new IllegalArgumentException("Cannot change the owner's role");
-        }
-
-        member.setRole(newRole);
-        memberJpaRepository.save(member);
-        log.info("Changed role of member '{}' to {} in repository '{}/{}'",
-                member.getUser().getUsername(), newRole, ownerUsername, repoName);
     }
 
     @Transactional
@@ -109,14 +82,7 @@ public class RepositoryMemberService {
     }
 
     public boolean canPush(Long repositoryId, String username) {
-        Optional<RepositoryMember> member =
-                memberJpaRepository.findByGitRepositoryIdAndUserUsername(repositoryId, username);
-        if (member.isEmpty()) return false;
-
-        RepositoryRole role = member.get().getRole();
-        return role == RepositoryRole.OWNER
-                || role == RepositoryRole.MAINTAINER
-                || role == RepositoryRole.DEVELOPER;
+        return memberJpaRepository.existsByGitRepositoryIdAndUserUsername(repositoryId, username);
     }
 
     public boolean isMember(Long repositoryId, String username) {
