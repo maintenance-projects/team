@@ -71,6 +71,21 @@ public class RepositoryMemberService {
                 member.getUser().getUsername(), ownerUsername, repoName);
     }
 
+    @Transactional
+    public void changeRole(String ownerUsername, String repoName,
+                           Long memberId, RepositoryRole role, String currentUsername) {
+        GitRepository repo = gitRepositoryService.getByOwnerAndName(ownerUsername, repoName);
+        verifyOwner(repo, currentUsername);
+
+        RepositoryMember member = memberJpaRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+
+        member.setRole(role);
+        memberJpaRepository.save(member);
+        log.info("Changed role of member '{}' to {} in repository '{}/{}'",
+                member.getUser().getUsername(), role, ownerUsername, repoName);
+    }
+
     public boolean isOwner(String ownerUsername, String repoName, String username) {
         GitRepository repo = gitRepositoryService.getByOwnerAndName(ownerUsername, repoName);
         User user = userService.findByUsername(username).orElse(null);
