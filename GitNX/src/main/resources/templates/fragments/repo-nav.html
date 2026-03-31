@@ -8,9 +8,6 @@
             <span class="text-muted">/</span>
             <a th:href="@{/{o}/{r}(o=${owner}, r=${repo})}" th:text="${repo}" class="text-decoration-none fw-bold"></a>
         </h4>
-        <span th:if="${gitRepo != null}" class="badge ms-2"
-              th:classappend="${gitRepo.visibility.name() == 'PUBLIC'} ? 'bg-success' : 'bg-secondary'"
-              th:text="${gitRepo.visibility}"></span>
     </div>
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">

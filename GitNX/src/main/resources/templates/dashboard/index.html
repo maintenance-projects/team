@@ -51,8 +51,6 @@
                                 </h6>
                                 <small th:text="${repo.description}" class="text-muted"></small>
                             </div>
-                            <span th:text="${repo.visibility}"
-                                  th:classappend="${repo.visibility.name() == 'PUBLIC'} ? 'badge bg-success' : 'badge bg-secondary'"></span>
                         </div>
                     </a>
                 </div>
@@ -247,10 +245,6 @@
                         selectRepo(repo);
                     };
 
-                    var visibilityBadge = repo.private
-                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:10px">Private</span>'
-                        : '<span class="badge bg-success ms-1" style="font-size:10px">Public</span>';
-
                     var description = repo.description
                         ? '<div class="text-muted small text-truncate">' + escapeHtml(repo.description) + '</div>'
                         : '';
@@ -267,7 +261,7 @@
                         '<div class="d-flex justify-content-between align-items-center">' +
                         '  <div class="me-2" style="min-width:0">' +
                         '    <div class="d-flex align-items-center">' +
-                        '      <span>' + escapeHtml(repo.name) + '</span>' + visibilityBadge +
+                        '      <span>' + escapeHtml(repo.name) + '</span>' +
                         '    </div>' +
                              description +
                         '    <div class="mt-1">' + language + updatedAt + '</div>' +
@@ -281,14 +275,13 @@
         }
 
         function selectRepo(repo) {
-            var modal = bootstrap.Modal.getInstance(document.getElementById('githubRepoModal'));
-            modal.hide();
+            var ghModal = bootstrap.Modal.getInstance(document.getElementById('githubRepoModal'));
+            ghModal.hide();
 
             document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
             var importingModal = new bootstrap.Modal(document.getElementById('importingModal'));
             importingModal.show();
 
-            // CSRF 토큰을 쿠키에서 읽기
             function getCookie(name) {
                 var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
                 return match ? decodeURIComponent(match[2]) : '';
@@ -298,7 +291,6 @@
             var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
                 + '&name=' + encodeURIComponent(repo.name)
                 + '&description=' + encodeURIComponent(repo.description || '')
-                + '&visibility=' + (repo.private ? 'PRIVATE' : 'PUBLIC')
                 + '&_csrf=' + encodeURIComponent(csrfToken);
 
             fetch('/import', {
@@ -307,7 +299,6 @@
                 body: body,
                 redirect: 'follow'
             }).then(function (res) {
-                // POST /import 성공 시 리다이렉트됨
                 if (res.redirected) {
                     window.location.href = res.url;
                 } else {

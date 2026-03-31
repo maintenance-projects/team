@@ -38,24 +38,6 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Visibility</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="visPrivate"
-                                   th:field="*{visibility}" value="PRIVATE" checked>
-                            <label class="form-check-label" for="visPrivate">
-                                Private - Only you and collaborators can see this repository
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="visPublic"
-                                   th:field="*{visibility}" value="PUBLIC">
-                            <label class="form-check-label" for="visPublic">
-                                Public - Anyone can see this repository
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
                         <label for="defaultBranch" class="form-label fw-bold">Default branch</label>
                         <input type="text" class="form-control" id="defaultBranch"
                                th:field="*{defaultBranch}" value="main" style="max-width: 200px;">
