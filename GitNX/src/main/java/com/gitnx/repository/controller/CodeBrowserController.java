@@ -47,11 +47,8 @@ public class CodeBrowserController {
     @Value("${gitnx.clone.http-base-url}")
     private String httpBaseUrl;
 
-    @GetMapping("/{owner}/{repo}")
+    @GetMapping("/{owner:^(?!css|js|img|assets|static|error|login|register|logout|dashboard|new|import|settings|admin|api|git|explore|help|about|oauth2|repo|git-auth).*$}/{repo}")
     public String repoRoot(@PathVariable String owner, @PathVariable String repo, Model model) {
-        if (RESERVED_PATHS.contains(owner.toLowerCase())) {
-            throw new com.gitnx.common.exception.ResourceNotFoundException("Not found: " + owner + "/" + repo);
-        }
         GitRepository gitRepo = gitRepositoryService.getByOwnerAndName(owner, repo);
         String branch = gitRepo.getDefaultBranch();
 

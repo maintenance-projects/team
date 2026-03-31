@@ -10,7 +10,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -28,6 +30,17 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final GitAuthenticationProvider gitAuthenticationProvider;
     private final com.gitnx.user.service.GitNxOAuth2SuccessHandler gitNxOAuth2SuccessHandler;
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(
+                new AntPathRequestMatcher("/css/**"),
+                new AntPathRequestMatcher("/js/**"),
+                new AntPathRequestMatcher("/img/**"),
+                new AntPathRequestMatcher("/favicon.ico"),
+                new AntPathRequestMatcher("/error/**")
+        );
+    }
 
     /**
      * REST API chain - handles /api/** requests.
@@ -102,10 +115,6 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         new AntPathRequestMatcher("/login"),
-                        new AntPathRequestMatcher("/css/**"),
-                        new AntPathRequestMatcher("/js/**"),
-                        new AntPathRequestMatcher("/img/**"),
-                        new AntPathRequestMatcher("/error/**"),
                         new AntPathRequestMatcher("/oauth2/**"),
                         new AntPathRequestMatcher("/login/oauth2/code/**"),
                         new AntPathRequestMatcher("/api/git/auth/**"),
