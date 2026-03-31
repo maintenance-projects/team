@@ -13,7 +13,9 @@
             <h2>Dashboard</h2>
             <div class="d-flex gap-2">
                 <a th:href="@{/new}" class="btn btn-success">+ New Repository</a>
-                <a th:href="@{/import}" class="btn btn-outline-primary">Import Repository</a>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
+                    Import Repository
+                </button>
             </div>
         </div>
 
@@ -26,9 +28,14 @@
                      class="text-center text-muted py-5">
                     <h5>No repositories yet</h5>
                     <p>Create your first repository to get started.</p>
-                    <a th:href="@{/new}" class="btn btn-outline-success">
-                        Create a repository
-                    </a>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a th:href="@{/new}" class="btn btn-outline-success">
+                            Create a repository
+                        </a>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
+                            Import from GitHub
+                        </button>
+                    </div>
                 </div>
                 <div th:if="${repositories != null and !repositories.isEmpty()}"
                      class="list-group list-group-flush">
@@ -52,6 +59,272 @@
             </div>
         </div>
     </div>
+
+    <!-- GitHub Repository Import 모달 -->
+    <div class="modal fade" id="githubRepoModal" tabindex="-1" aria-labelledby="githubRepoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="githubRepoModalLabel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-github me-2" viewBox="0 0 16 16">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                        Import from GitHub
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="p-3 border-bottom sticky-top bg-body" style="z-index:10">
+                        <input type="text" class="form-control" id="ghSearchInput"
+                               placeholder="Search repositories...">
+                    </div>
+                    <div id="ghLoading" class="text-center py-5">
+                        <div class="spinner-border text-secondary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-2">GitHub 레포지토리 불러오는 중...</p>
+                    </div>
+                    <div id="ghRepoList" class="list-group list-group-flush" style="display:none;"></div>
+                    <div id="ghError" class="text-center py-5 text-danger" style="display:none;"></div>
+                    <div id="ghLoadMore" class="text-center py-3 border-top" style="display:none;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadMoreRepos()">
+                            더 불러오기
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a th:href="@{/import}" class="btn btn-outline-secondary btn-sm">URL 직접 입력으로 Import</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import 진행 모달 -->
+    <div class="modal fade" id="importingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-success mb-3" role="status">
+                        <span class="visually-hidden">Importing...</span>
+                    </div>
+                    <h5 id="importingRepoName">Importing repository...</h5>
+                    <p class="text-muted">잠시만 기다려주세요</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var allRepos = [];
+        var currentPage = 1;
+        var hasMore = true;
+
+        document.getElementById('githubRepoModal').addEventListener('show.bs.modal', function () {
+            if (allRepos.length === 0) {
+                currentPage = 1;
+                loadRepos();
+            }
+        });
+
+        document.getElementById('ghSearchInput').addEventListener('input', function () {
+            var query = this.value.toLowerCase();
+            renderRepos(allRepos.filter(function (r) {
+                return r.full_name.toLowerCase().includes(query)
+                    || (r.description && r.description.toLowerCase().includes(query));
+            }));
+        });
+
+        function loadRepos() {
+            document.getElementById('ghLoading').style.display = 'block';
+            document.getElementById('ghRepoList').style.display = 'none';
+            document.getElementById('ghError').style.display = 'none';
+            document.getElementById('ghLoadMore').style.display = 'none';
+            fetchReposPage(1);
+        }
+
+        function fetchReposPage(page) {
+            fetch('/github/repos?page=' + page + '&perPage=100')
+                .then(function (res) {
+                    if (!res.ok) throw new Error('Failed to fetch');
+                    hasMore = res.headers.get('X-GitHub-Link') && res.headers.get('X-GitHub-Link').includes('rel="next"');
+                    return res.json();
+                })
+                .then(function (repos) {
+                    if (page === 1) allRepos = [];
+                    allRepos = allRepos.concat(repos);
+                    currentPage = page;
+                    document.getElementById('ghLoading').style.display = 'none';
+                    document.getElementById('ghRepoList').style.display = 'block';
+
+                    var query = document.getElementById('ghSearchInput').value.toLowerCase();
+                    var filtered = query ? allRepos.filter(function (r) {
+                        return r.full_name.toLowerCase().includes(query);
+                    }) : allRepos;
+                    renderRepos(filtered);
+
+                    if (hasMore) {
+                        document.getElementById('ghLoadMore').style.display = 'block';
+                    }
+                })
+                .catch(function (err) {
+                    document.getElementById('ghLoading').style.display = 'none';
+                    document.getElementById('ghError').style.display = 'block';
+                    document.getElementById('ghError').textContent = 'GitHub 레포지토리를 불러올 수 없습니다: ' + err.message;
+                });
+        }
+
+        function loadMoreRepos() {
+            document.getElementById('ghLoadMore').style.display = 'none';
+            fetchReposPage(currentPage + 1);
+        }
+
+        function renderRepos(repos) {
+            var list = document.getElementById('ghRepoList');
+            list.innerHTML = '';
+
+            if (repos.length === 0) {
+                list.innerHTML = '<div class="text-center py-4 text-muted">레포지토리를 찾을 수 없습니다</div>';
+                return;
+            }
+
+            var groups = {};
+            var personalOwner = null;
+            repos.forEach(function (repo) {
+                var ownerLogin = repo.owner.login;
+                var ownerType = repo.owner.type;
+                if (!groups[ownerLogin]) {
+                    groups[ownerLogin] = {
+                        login: ownerLogin,
+                        avatar: repo.owner.avatar_url,
+                        type: ownerType,
+                        repos: []
+                    };
+                }
+                groups[ownerLogin].repos.push(repo);
+                if (ownerType === 'User') personalOwner = ownerLogin;
+            });
+
+            var sortedKeys = Object.keys(groups).sort(function (a, b) {
+                if (a === personalOwner) return -1;
+                if (b === personalOwner) return 1;
+                return a.toLowerCase().localeCompare(b.toLowerCase());
+            });
+
+            sortedKeys.forEach(function (ownerLogin) {
+                var group = groups[ownerLogin];
+                var isPersonal = group.type === 'User';
+
+                var header = document.createElement('div');
+                header.className = 'list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center';
+                header.style.cursor = 'pointer';
+                header.style.position = 'sticky';
+                header.style.top = '52px';
+                header.style.zIndex = '5';
+                header.setAttribute('data-owner', ownerLogin);
+                header.onclick = function () {
+                    var items = list.querySelectorAll('[data-repo-owner="' + ownerLogin + '"]');
+                    var chevron = header.querySelector('.gh-chevron');
+                    var collapsed = items[0] && items[0].style.display === 'none';
+                    items.forEach(function (el) { el.style.display = collapsed ? '' : 'none'; });
+                    chevron.textContent = collapsed ? '\u25BE' : '\u25B8';
+                };
+
+                header.innerHTML =
+                    '<span class="gh-chevron me-2" style="font-size:12px;width:12px;display:inline-block">\u25BE</span>' +
+                    '<img src="' + group.avatar + '" width="22" height="22" class="rounded-circle me-2" alt="">' +
+                    '<strong>' + escapeHtml(isPersonal ? 'Personal' : ownerLogin) + '</strong>' +
+                    '<span class="badge bg-secondary ms-2">' + group.repos.length + '</span>';
+
+                list.appendChild(header);
+
+                group.repos.forEach(function (repo) {
+                    var item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action py-2 ps-5';
+                    item.setAttribute('data-repo-owner', ownerLogin);
+                    item.onclick = function (e) {
+                        e.preventDefault();
+                        selectRepo(repo);
+                    };
+
+                    var visibilityBadge = repo.private
+                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:10px">Private</span>'
+                        : '<span class="badge bg-success ms-1" style="font-size:10px">Public</span>';
+
+                    var description = repo.description
+                        ? '<div class="text-muted small text-truncate">' + escapeHtml(repo.description) + '</div>'
+                        : '';
+
+                    var language = repo.language
+                        ? '<span class="badge bg-light text-dark me-1" style="font-size:10px">' + repo.language + '</span>'
+                        : '';
+
+                    var updatedAt = repo.updated_at
+                        ? '<small class="text-muted" style="font-size:11px">' + new Date(repo.updated_at).toLocaleDateString() + '</small>'
+                        : '';
+
+                    item.innerHTML =
+                        '<div class="d-flex justify-content-between align-items-center">' +
+                        '  <div class="me-2" style="min-width:0">' +
+                        '    <div class="d-flex align-items-center">' +
+                        '      <span>' + escapeHtml(repo.name) + '</span>' + visibilityBadge +
+                        '    </div>' +
+                             description +
+                        '    <div class="mt-1">' + language + updatedAt + '</div>' +
+                        '  </div>' +
+                        '  <button class="btn btn-sm btn-outline-success flex-shrink-0">Import</button>' +
+                        '</div>';
+
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function selectRepo(repo) {
+            var modal = bootstrap.Modal.getInstance(document.getElementById('githubRepoModal'));
+            modal.hide();
+
+            document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
+            var importingModal = new bootstrap.Modal(document.getElementById('importingModal'));
+            importingModal.show();
+
+            // CSRF 토큰을 쿠키에서 읽기
+            function getCookie(name) {
+                var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+                return match ? decodeURIComponent(match[2]) : '';
+            }
+
+            var csrfToken = getCookie('XSRF-TOKEN');
+            var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
+                + '&name=' + encodeURIComponent(repo.name)
+                + '&description=' + encodeURIComponent(repo.description || '')
+                + '&visibility=' + (repo.private ? 'PRIVATE' : 'PUBLIC')
+                + '&_csrf=' + encodeURIComponent(csrfToken);
+
+            fetch('/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body,
+                redirect: 'follow'
+            }).then(function (res) {
+                // POST /import 성공 시 리다이렉트됨
+                if (res.redirected) {
+                    window.location.href = res.url;
+                } else {
+                    window.location.reload();
+                }
+            }).catch(function () {
+                importingModal.hide();
+                alert('Import에 실패했습니다. 다시 시도해주세요.');
+            });
+        }
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(text));
+            return div.innerHTML;
+        }
+    </script>
 </div>
 </body>
 </html>

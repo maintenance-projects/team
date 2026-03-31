@@ -94,7 +94,7 @@
                 </div>
                 <div class="modal-body p-0">
                     <!-- 검색 -->
-                    <div class="p-3 border-bottom sticky-top bg-white">
+                    <div class="p-3 border-bottom sticky-top bg-body" style="z-index:10">
                         <input type="text" class="form-control" id="ghSearchInput"
                                placeholder="Search repositories...">
                     </div>
@@ -212,50 +212,98 @@
                 return;
             }
 
+            // Owner별로 그룹핑 (Personal 먼저, 나머지 Org는 알파벳 순)
+            var groups = {};
+            var personalOwner = null;
             repos.forEach(function (repo) {
-                var item = document.createElement('a');
-                item.href = '#';
-                item.className = 'list-group-item list-group-item-action py-3';
-                item.onclick = function (e) {
-                    e.preventDefault();
-                    selectRepo(repo);
+                var ownerLogin = repo.owner.login;
+                var ownerType = repo.owner.type; // "User" or "Organization"
+                if (!groups[ownerLogin]) {
+                    groups[ownerLogin] = {
+                        login: ownerLogin,
+                        avatar: repo.owner.avatar_url,
+                        type: ownerType,
+                        repos: []
+                    };
+                }
+                groups[ownerLogin].repos.push(repo);
+                if (ownerType === 'User') personalOwner = ownerLogin;
+            });
+
+            // Personal 먼저, 나머지 Org 알파벳 순 정렬
+            var sortedKeys = Object.keys(groups).sort(function (a, b) {
+                if (a === personalOwner) return -1;
+                if (b === personalOwner) return 1;
+                return a.toLowerCase().localeCompare(b.toLowerCase());
+            });
+
+            sortedKeys.forEach(function (ownerLogin) {
+                var group = groups[ownerLogin];
+                var isPersonal = group.type === 'User';
+
+                // 그룹 헤더
+                var header = document.createElement('div');
+                header.className = 'list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center sticky-top';
+                header.style.cursor = 'pointer';
+                header.style.top = '52px'; // 검색창 아래
+                header.setAttribute('data-owner', ownerLogin);
+                header.onclick = function () {
+                    var items = list.querySelectorAll('[data-repo-owner="' + ownerLogin + '"]');
+                    var chevron = header.querySelector('.gh-chevron');
+                    var collapsed = items[0] && items[0].style.display === 'none';
+                    items.forEach(function (el) { el.style.display = collapsed ? '' : 'none'; });
+                    chevron.textContent = collapsed ? '\u25BE' : '\u25B8';
                 };
 
-                var visibilityBadge = repo.private
-                    ? '<span class="badge bg-warning text-dark ms-2">Private</span>'
-                    : '<span class="badge bg-success ms-2">Public</span>';
+                header.innerHTML =
+                    '<span class="gh-chevron me-2" style="font-size:12px;width:12px;display:inline-block">\u25BE</span>' +
+                    '<img src="' + group.avatar + '" width="22" height="22" class="rounded-circle me-2" alt="">' +
+                    '<strong>' + escapeHtml(isPersonal ? 'Personal' : ownerLogin) + '</strong>' +
+                    '<span class="badge bg-secondary ms-2">' + group.repos.length + '</span>';
 
-                var ownerAvatar = repo.owner && repo.owner.avatar_url
-                    ? '<img src="' + repo.owner.avatar_url + '" width="20" height="20" class="rounded-circle me-2" alt="">'
-                    : '';
+                list.appendChild(header);
 
-                var description = repo.description
-                    ? '<div class="text-muted small text-truncate">' + escapeHtml(repo.description) + '</div>'
-                    : '';
+                // 레포 항목들
+                group.repos.forEach(function (repo) {
+                    var item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action py-2 ps-5';
+                    item.setAttribute('data-repo-owner', ownerLogin);
+                    item.onclick = function (e) {
+                        e.preventDefault();
+                        selectRepo(repo);
+                    };
 
-                var language = repo.language
-                    ? '<span class="badge bg-light text-dark me-2">' + repo.language + '</span>'
-                    : '';
+                    var visibilityBadge = repo.private
+                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:10px">Private</span>'
+                        : '<span class="badge bg-success ms-1" style="font-size:10px">Public</span>';
 
-                var updatedAt = repo.updated_at
-                    ? '<small class="text-muted">' + new Date(repo.updated_at).toLocaleDateString() + '</small>'
-                    : '';
+                    var description = repo.description
+                        ? '<div class="text-muted small text-truncate">' + escapeHtml(repo.description) + '</div>'
+                        : '';
 
-                item.innerHTML =
-                    '<div class="d-flex justify-content-between align-items-start">' +
-                    '  <div class="me-3" style="min-width:0">' +
-                    '    <div class="d-flex align-items-center">' +
-                             ownerAvatar +
-                    '      <strong>' + escapeHtml(repo.full_name) + '</strong>' +
-                             visibilityBadge +
-                    '    </div>' +
-                         description +
-                    '    <div class="mt-1">' + language + updatedAt + '</div>' +
-                    '  </div>' +
-                    '  <button class="btn btn-sm btn-outline-success flex-shrink-0">Import</button>' +
-                    '</div>';
+                    var language = repo.language
+                        ? '<span class="badge bg-light text-dark me-1" style="font-size:10px">' + repo.language + '</span>'
+                        : '';
 
-                list.appendChild(item);
+                    var updatedAt = repo.updated_at
+                        ? '<small class="text-muted" style="font-size:11px">' + new Date(repo.updated_at).toLocaleDateString() + '</small>'
+                        : '';
+
+                    item.innerHTML =
+                        '<div class="d-flex justify-content-between align-items-center">' +
+                        '  <div class="me-2" style="min-width:0">' +
+                        '    <div class="d-flex align-items-center">' +
+                        '      <span>' + escapeHtml(repo.name) + '</span>' + visibilityBadge +
+                        '    </div>' +
+                             description +
+                        '    <div class="mt-1">' + language + updatedAt + '</div>' +
+                        '  </div>' +
+                        '  <button class="btn btn-sm btn-outline-success flex-shrink-0">Import</button>' +
+                        '</div>';
+
+                    list.appendChild(item);
+                });
             });
         }
 

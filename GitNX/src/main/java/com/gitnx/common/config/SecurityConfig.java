@@ -118,6 +118,10 @@ public class SecurityConfig {
                 .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))
                 .successHandler(gitNxOAuth2SuccessHandler)
             )
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRequestHandler(new org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler())
+            )
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
