@@ -38,6 +38,20 @@ public class WorkbenchUserClient {
         }
     }
 
+    /**
+     * Workbench 전체 사용자 목록 조회.
+     */
+    public List<WorkbenchUser> getAllUsers() {
+        try {
+            String url = baseUrl + "/organization/alluser";
+            WorkbenchUser[] users = restTemplate.getForObject(url, WorkbenchUser[].class);
+            return users != null ? List.of(users) : List.of();
+        } catch (Exception e) {
+            log.warn("[WorkbenchClient] getAllUsers failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class WorkbenchUser {

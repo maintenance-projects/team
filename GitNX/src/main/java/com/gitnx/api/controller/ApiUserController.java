@@ -22,10 +22,7 @@ public class ApiUserController {
     public ResponseEntity<List<UserSearchDto>> search(
             @RequestParam(name = "q", defaultValue = "") String query,
             @RequestParam(name = "limit", defaultValue = "10") int limit) {
-        List<UserSearchDto> result = userService.searchUsers(query, limit)
-                .stream()
-                .map(UserSearchDto::from)
-                .toList();
+        List<UserSearchDto> result = userService.searchUsers(query, limit);
         return ResponseEntity.ok(result);
     }
 }
