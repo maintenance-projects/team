@@ -25,6 +25,7 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.TransportHttp;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,21 +106,10 @@ public class GitRepositoryService {
         repoDir.getParentFile().mkdirs();
 
         try {
-            // Clone URL에 토큰을 포함시켜야 GitHub private repo 접근 가능
-            // (GitHub는 인증 없이 private repo 접근 시 401이 아닌 404를 반환하므로
-            //  JGit의 CredentialsProvider가 동작하지 않음)
             String cloneUrl = request.getCloneUrl();
             String token = request.getAccessToken();
-            log.debug("Import - cloneUrl: {}, hasToken: {}, tokenPrefix: {}",
-                    cloneUrl,
-                    token != null && !token.isBlank(),
-                    token != null && token.length() > 10 ? token.substring(0, 10) + "..." : "null");
-
-            if (token != null && !token.isBlank() && cloneUrl.startsWith("https://")) {
-                cloneUrl = "https://x-access-token:" + token
-                        + "@" + cloneUrl.substring("https://".length());
-                log.debug("Import - authenticated URL built for: {}", request.getCloneUrl());
-            }
+            log.debug("Import - cloneUrl: {}, hasToken: {}",
+                    cloneUrl, token != null && !token.isBlank());
 
             // Clone as bare repository from remote URL
             var cloneCommand = Git.cloneRepository()
@@ -127,6 +117,18 @@ public class GitRepositoryService {
                     .setDirectory(repoDir)
                     .setBare(true)
                     .setCloneAllBranches(true);
+
+            // GitHub private repo: Authorization 헤더를 직접 설정
+            // (GitHub는 인증 없이 private repo 접근 시 401이 아닌 404를 반환하므로
+            //  JGit의 CredentialsProvider가 동작하지 않음)
+            if (token != null && !token.isBlank()) {
+                cloneCommand.setTransportConfigCallback(transport -> {
+                    if (transport instanceof TransportHttp) {
+                        ((TransportHttp) transport).setAdditionalHeaders(
+                                java.util.Map.of("Authorization", "Bearer " + token));
+                    }
+                });
+            }
 
             cloneCommand.call().close();
             log.info("Successfully cloned repository from {} to {}", request.getCloneUrl(), diskPath);
