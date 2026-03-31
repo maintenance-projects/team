@@ -133,6 +133,7 @@ public class GitRepositoryService {
                     log.warn("Failed to clean up directory after failed clone: {}", repoDir, ex);
                 }
             }
+            log.error("Failed to clone repository from {}: {}", request.getCloneUrl(), e.getMessage(), e);
             throw new GitOperationException("Failed to clone repository from " + request.getCloneUrl(), e);
         }
 

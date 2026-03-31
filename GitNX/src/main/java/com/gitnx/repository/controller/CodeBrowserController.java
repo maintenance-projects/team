@@ -19,10 +19,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 @Controller
 @RequiredArgsConstructor
 public class CodeBrowserController {
+
+    private static final Set<String> RESERVED_PATHS = Set.of(
+            "css", "js", "img", "assets", "static", "error",
+            "login", "register", "logout", "dashboard", "new", "import",
+            "settings", "admin", "api", "git", "explore", "help", "about",
+            "oauth2", "repo", "git-auth"
+    );
 
     private final GitRepositoryService gitRepositoryService;
     private final CodeBrowserService codeBrowserService;
@@ -33,6 +41,9 @@ public class CodeBrowserController {
 
     @GetMapping("/{owner}/{repo}")
     public String repoRoot(@PathVariable String owner, @PathVariable String repo, Model model) {
+        if (RESERVED_PATHS.contains(owner.toLowerCase())) {
+            throw new com.gitnx.common.exception.ResourceNotFoundException("Not found: " + owner + "/" + repo);
+        }
         GitRepository gitRepo = gitRepositoryService.getByOwnerAndName(owner, repo);
         String branch = gitRepo.getDefaultBranch();
 
