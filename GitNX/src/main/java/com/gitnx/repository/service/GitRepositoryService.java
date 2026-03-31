@@ -118,14 +118,18 @@ public class GitRepositoryService {
                     .setBare(true)
                     .setCloneAllBranches(true);
 
-            // GitHub private repo: Authorization 헤더를 직접 설정
-            // (GitHub는 인증 없이 private repo 접근 시 401이 아닌 404를 반환하므로
-            //  JGit의 CredentialsProvider가 동작하지 않음)
+            // GitHub private repo 인증:
+            // 1) additionalHeaders로 첫 요청부터 Basic auth 전송 (GitHub는 미인증 시 404 반환하므로)
+            // 2) CredentialsProvider로 후속 401 챌린지 처리
             if (token != null && !token.isBlank()) {
+                String basicAuth = java.util.Base64.getEncoder()
+                        .encodeToString(("x-access-token:" + token).getBytes());
+                cloneCommand.setCredentialsProvider(
+                        new UsernamePasswordCredentialsProvider("x-access-token", token));
                 cloneCommand.setTransportConfigCallback(transport -> {
                     if (transport instanceof TransportHttp) {
                         ((TransportHttp) transport).setAdditionalHeaders(
-                                java.util.Map.of("Authorization", "Bearer " + token));
+                                java.util.Map.of("Authorization", "Basic " + basicAuth));
                     }
                 });
             }
