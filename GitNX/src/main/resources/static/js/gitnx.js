@@ -14,8 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
             valueField: 'username',
             labelField: 'username',
             searchField: ['username', 'displayName'],
+            openOnFocus: true,
+            shouldLoad: function(query) {
+                return true;
+            },
             load: function(query, callback) {
-                if (!query.length) return callback();
                 fetch('/api/users/search?q=' + encodeURIComponent(query))
                     .then(response => response.json())
                     .then(json => {

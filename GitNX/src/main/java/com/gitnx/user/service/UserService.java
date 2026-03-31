@@ -96,6 +96,9 @@ public class UserService {
 
     public java.util.List<User> searchUsers(String query, int limit) {
         org.springframework.data.domain.PageRequest pageRequest = org.springframework.data.domain.PageRequest.of(0, limit);
+        if (query == null || query.isBlank()) {
+            return userRepository.findAll(pageRequest).getContent();
+        }
         return userRepository.findByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(query, query, pageRequest);
     }
 }

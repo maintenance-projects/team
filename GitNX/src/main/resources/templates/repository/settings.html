@@ -30,7 +30,7 @@
             <div class="card-body">
                 <form th:action="@{/{o}/{r}/settings/members(o=${owner}, r=${repo})}" method="post">
                     <div class="d-flex gap-2 align-items-end">
-                        <div class="flex-grow-1">
+                        <div class="flex-grow-1" style="min-width: 300px;">
                             <label class="form-label small">Username</label>
                             <select id="userSelect" name="username" class="user-search-select"
                                     placeholder="Search by username or name..." required>
