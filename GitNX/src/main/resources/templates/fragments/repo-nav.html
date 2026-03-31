@@ -15,16 +15,8 @@
                th:href="@{/{o}/{r}(o=${owner}, r=${repo})}">Code</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" th:classappend="${activeTab == 'issues'} ? 'active'"
-               th:href="@{/{o}/{r}/issues(o=${owner}, r=${repo})}">Issues</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" th:classappend="${activeTab == 'mergerequests'} ? 'active'"
-               th:href="@{/{o}/{r}/merge-requests(o=${owner}, r=${repo})}">Merge Requests</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" th:classappend="${activeTab == 'branches'} ? 'active'"
-               th:href="@{/{o}/{r}/branches(o=${owner}, r=${repo})}">Branches</a>
+            <a class="nav-link" th:classappend="${activeTab == 'commits'} ? 'active'"
+               th:href="@{/{o}/{r}/commits/{b}(o=${owner}, r=${repo}, b=${currentBranch ?: 'main'})}">Commits</a>
         </li>
         <li class="nav-item"
             th:if="${#authentication != null and #authentication.name == owner}">

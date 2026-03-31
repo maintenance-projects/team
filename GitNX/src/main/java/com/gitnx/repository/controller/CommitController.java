@@ -39,7 +39,7 @@ public class CommitController {
         model.addAttribute("commits", commits);
         model.addAttribute("currentPage", page);
         model.addAttribute("hasMore", commits.size() == 30);
-        model.addAttribute("activeTab", "code");
+        model.addAttribute("activeTab", "commits");
 
         return "code/commits";
     }
@@ -55,7 +55,7 @@ public class CommitController {
         model.addAttribute("gitRepo", gitRepositoryService.getByOwnerAndName(owner, repo));
         model.addAttribute("commit", commit);
         model.addAttribute("diffs", diffs);
-        model.addAttribute("activeTab", "code");
+        model.addAttribute("activeTab", "commits");
 
         return "code/commit-detail";
     }
