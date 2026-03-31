@@ -167,7 +167,7 @@
         }
 
         function fetchReposPage(page) {
-            fetch('/api/github/repos?page=' + page + '&perPage=100')
+            fetch('/github/repos?page=' + page + '&perPage=100')
                 .then(function (res) {
                     if (!res.ok) throw new Error('Failed to fetch');
                     hasMore = res.headers.get('X-GitHub-Link') && res.headers.get('X-GitHub-Link').includes('rel="next"');

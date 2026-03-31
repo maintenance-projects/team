@@ -18,7 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/github")
+@RequestMapping("/github")
 @RequiredArgsConstructor
 public class GitHubRepoController {
 
