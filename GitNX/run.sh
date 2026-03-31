@@ -9,7 +9,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DB_CONTAINER="gitnx-db"
 DB_NAME="gitnx"
 DB_USER="root"
-SERVER_PORT=8082
+SERVER_PORT=9090
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

@@ -111,44 +111,37 @@ public class GitRepositoryService {
             log.debug("Import - cloneUrl: {}, hasToken: {}",
                     cloneUrl, token != null && !token.isBlank());
 
-            // Clone as bare repository from remote URL
-            var cloneCommand = Git.cloneRepository()
-                    .setURI(cloneUrl)
-                    .setDirectory(repoDir)
-                    .setBare(true)
-                    .setCloneAllBranches(true);
-
-            // GitHub private repo 인증:
-            // 1) additionalHeaders로 첫 요청부터 Basic auth 전송 (GitHub는 미인증 시 404 반환하므로)
-            // 2) CredentialsProvider로 후속 401 챌린지 처리
-            if (token != null && !token.isBlank()) {
-                String basicAuth = java.util.Base64.getEncoder()
-                        .encodeToString(("x-access-token:" + token).getBytes());
-                cloneCommand.setCredentialsProvider(
-                        new UsernamePasswordCredentialsProvider("x-access-token", token));
-                cloneCommand.setTransportConfigCallback(transport -> {
-                    if (transport instanceof TransportHttp) {
-                        ((TransportHttp) transport).setAdditionalHeaders(
-                                java.util.Map.of("Authorization", "Basic " + basicAuth));
-                    }
-                });
+            // 시스템 git 명령어로 clone (JGit은 GitHub private repo 인증 처리에 한계가 있음)
+            // GitHub는 미인증 요청에 404를 반환하여 JGit의 CredentialsProvider가 동작하지 않음
+            String authenticatedUrl = cloneUrl;
+            if (token != null && !token.isBlank() && cloneUrl.startsWith("https://")) {
+                authenticatedUrl = "https://x-access-token:" + token
+                        + "@" + cloneUrl.substring("https://".length());
             }
 
-            cloneCommand.call().close();
-            log.info("Successfully cloned repository from {} to {}", request.getCloneUrl(), diskPath);
+            ProcessBuilder pb = new ProcessBuilder(
+                    "git", "clone", "--bare", authenticatedUrl, diskPath);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
 
-        } catch (GitAPIException e) {
+            String output = new String(process.getInputStream().readAllBytes());
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0) {
+                log.error("git clone failed (exit {}): {}", exitCode, output);
+                throw new GitOperationException(
+                        "Failed to clone repository from " + cloneUrl + ": " + output);
+            }
+
+            log.info("Successfully cloned repository from {} to {}", cloneUrl, diskPath);
+
+        } catch (GitOperationException e) {
             // Clean up on failure
-            if (repoDir.exists()) {
-                try {
-                    Files.walk(repoDir.toPath())
-                            .sorted(Comparator.reverseOrder())
-                            .map(Path::toFile)
-                            .forEach(File::delete);
-                } catch (IOException ex) {
-                    log.warn("Failed to clean up directory after failed clone: {}", repoDir, ex);
-                }
-            }
+            cleanUpDirectory(repoDir);
+            throw e;
+        } catch (Exception e) {
+            // Clean up on failure
+            cleanUpDirectory(repoDir);
             log.error("Failed to clone repository from {}: {}", request.getCloneUrl(), e.getMessage(), e);
             throw new GitOperationException("Failed to clone repository from " + request.getCloneUrl(), e);
         }
@@ -176,6 +169,19 @@ public class GitRepositoryService {
         memberJpaRepository.save(member);
 
         return repo;
+    }
+
+    private void cleanUpDirectory(File dir) {
+        if (dir.exists()) {
+            try {
+                Files.walk(dir.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException ex) {
+                log.warn("Failed to clean up directory: {}", dir, ex);
+            }
+        }
     }
 
     /**
