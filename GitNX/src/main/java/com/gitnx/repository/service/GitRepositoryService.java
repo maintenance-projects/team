@@ -109,10 +109,16 @@ public class GitRepositoryService {
             // (GitHub는 인증 없이 private repo 접근 시 401이 아닌 404를 반환하므로
             //  JGit의 CredentialsProvider가 동작하지 않음)
             String cloneUrl = request.getCloneUrl();
-            if (request.getAccessToken() != null && !request.getAccessToken().isBlank()
-                    && cloneUrl.startsWith("https://")) {
-                cloneUrl = "https://x-access-token:" + request.getAccessToken()
+            String token = request.getAccessToken();
+            log.debug("Import - cloneUrl: {}, hasToken: {}, tokenPrefix: {}",
+                    cloneUrl,
+                    token != null && !token.isBlank(),
+                    token != null && token.length() > 10 ? token.substring(0, 10) + "..." : "null");
+
+            if (token != null && !token.isBlank() && cloneUrl.startsWith("https://")) {
+                cloneUrl = "https://x-access-token:" + token
                         + "@" + cloneUrl.substring("https://".length());
+                log.debug("Import - authenticated URL built for: {}", request.getCloneUrl());
             }
 
             // Clone as bare repository from remote URL
