@@ -93,4 +93,9 @@ public class UserService {
 
         return userRepository.save(user);
     }
+
+    public java.util.List<User> searchUsers(String query, int limit) {
+        org.springframework.data.domain.PageRequest pageRequest = org.springframework.data.domain.PageRequest.of(0, limit);
+        return userRepository.findByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(query, query, pageRequest);
+    }
 }
