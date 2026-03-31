@@ -1,6 +1,8 @@
 // GitNX Custom JavaScript
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-dismiss alerts after 5 seconds
+    console.log('GitNX JS Loaded');
+
+    // Auto-dismiss alerts
     document.querySelectorAll('.alert:not(.alert-permanent)').forEach(function(alert) {
         setTimeout(function() {
             var bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
@@ -10,7 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Tom Select - User Search
     document.querySelectorAll('.user-search-select').forEach(function(el) {
-        new TomSelect(el, {
+        console.log('Initializing User Search Select:', el);
+        
+        const ts = new TomSelect(el, {
             valueField: 'username',
             labelField: 'username',
             searchField: ['username', 'displayName'],
@@ -18,12 +22,22 @@ document.addEventListener('DOMContentLoaded', function() {
             shouldLoad: function(query) {
                 return true;
             },
+            onFocus: function() {
+                console.log('User Search Focus - triggering load');
+                this.load('');
+            },
             load: function(query, callback) {
+                console.log('Loading users for query:', query);
                 fetch('/api/users/search?q=' + encodeURIComponent(query))
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('API Response status:', response.status);
+                        return response.json();
+                    })
                     .then(json => {
+                        console.log('Users found:', json.length);
                         callback(json);
-                    }).catch(() => {
+                    }).catch(err => {
+                        console.error('User search failed:', err);
                         callback();
                     });
             },
