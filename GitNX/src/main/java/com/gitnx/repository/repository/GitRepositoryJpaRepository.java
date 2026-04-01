@@ -11,7 +11,7 @@ public interface GitRepositoryJpaRepository extends JpaRepository<GitRepository,
 
     List<GitRepository> findByOwnerOrderByCreatedAtDesc(User owner);
 
-    Optional<GitRepository> findByOwnerUsernameAndName(String ownerUsername, String name);
+    List<GitRepository> findByOwnerUsernameAndName(String ownerUsername, String name);
 
     Optional<GitRepository> findByOwnerUsernameAndNameAndOrganizationIsNull(String ownerUsername, String name);
 

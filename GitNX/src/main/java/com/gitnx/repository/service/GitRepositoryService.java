@@ -346,7 +346,9 @@ public class GitRepositoryService {
     }
 
     public GitRepository getByOwnerAndName(String owner, String name) {
+        // Personal 레포 우선, 없으면 아무거나 (Organization 포함)
         return repoJpaRepository.findByOwnerUsernameAndNameAndOrganizationIsNull(owner, name)
+                .or(() -> repoJpaRepository.findByOwnerUsernameAndName(owner, name).stream().findFirst())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Repository not found: " + owner + "/" + name));
     }
