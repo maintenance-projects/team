@@ -24,4 +24,6 @@ public class CreateRepositoryRequest {
     private String defaultBranch = "main";
 
     private boolean initWithReadme = true;
+
+    private Long organizationId;
 }

@@ -37,6 +37,16 @@
                                   placeholder="Short description of your repository"></textarea>
                     </div>
 
+                    <div class="mb-3" th:if="${organizations != null and !organizations.isEmpty()}">
+                        <label for="organizationId" class="form-label fw-bold">Organization</label>
+                        <select class="form-select" id="organizationId" th:field="*{organizationId}">
+                            <option value="">Personal (me)</option>
+                            <option th:each="org : ${organizations}"
+                                    th:value="${org.id}"
+                                    th:text="${org.name}"></option>
+                        </select>
+                    </div>
+
                     <div class="mb-3">
                         <label for="defaultBranch" class="form-label fw-bold">Default branch</label>
                         <input type="text" class="form-control" id="defaultBranch"

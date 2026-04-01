@@ -25,4 +25,6 @@ public class ImportRepositoryRequest {
 
     // 사용자가 직접 입력한 Personal Access Token (Organization repo용)
     private String personalAccessToken;
+
+    private Long organizationId;
 }

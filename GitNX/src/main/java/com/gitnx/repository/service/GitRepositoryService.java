@@ -3,6 +3,8 @@ package com.gitnx.repository.service;
 import com.gitnx.common.config.JGitConfig;
 import com.gitnx.common.exception.GitOperationException;
 import com.gitnx.common.exception.ResourceNotFoundException;
+import com.gitnx.organization.entity.Organization;
+import com.gitnx.organization.repository.OrganizationJpaRepository;
 import com.gitnx.repository.dto.CreateRepositoryRequest;
 import com.gitnx.repository.dto.ImportRepositoryRequest;
 import com.gitnx.repository.dto.RepositoryDto;
@@ -51,6 +53,7 @@ public class GitRepositoryService {
     private final MergeRequestJpaRepository mergeRequestJpaRepository;
     private final UserService userService;
     private final JGitConfig jGitConfig;
+    private final OrganizationJpaRepository orgRepository;
 
     @Transactional
     public GitRepository create(String ownerUsername, CreateRepositoryRequest request) {
@@ -70,6 +73,12 @@ public class GitRepositoryService {
                 .diskPath(diskPath)
                 .owner(owner)
                 .build();
+
+        if (request.getOrganizationId() != null) {
+            Organization org = orgRepository.findById(request.getOrganizationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
+            repo.setOrganization(org);
+        }
 
         repo = repoJpaRepository.save(repo);
 
@@ -158,6 +167,12 @@ public class GitRepositoryService {
                 .owner(owner)
                 .build();
 
+        if (request.getOrganizationId() != null) {
+            Organization org = orgRepository.findById(request.getOrganizationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
+            repo.setOrganization(org);
+        }
+
         repo = repoJpaRepository.save(repo);
 
         // Add owner as member
@@ -169,6 +184,12 @@ public class GitRepositoryService {
         memberJpaRepository.save(member);
 
         return repo;
+    }
+
+    public List<RepositoryDto> listByOrganization(Long organizationId) {
+        return repoJpaRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId).stream()
+                .map(RepositoryDto::from)
+                .toList();
     }
 
     private void cleanUpDirectory(File dir) {

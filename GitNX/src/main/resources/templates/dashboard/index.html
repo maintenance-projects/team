@@ -12,7 +12,9 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Dashboard</h2>
             <div class="d-flex gap-2">
-                <a th:href="@{/new}" class="btn btn-success">+ New Repository</a>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newRepoModal">
+                    + New Repository
+                </button>
                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
                     Import Repository
                 </button>
@@ -23,42 +25,96 @@
             <div class="card-header">
                 <h5 class="mb-0">Repositories</h5>
             </div>
-            <div class="card-body">
-                <div th:if="${repositories == null or repositories.isEmpty()}"
-                     class="text-center text-muted py-5">
-                    <h5>No repositories yet</h5>
-                    <p>Create your first repository to get started.</p>
-                    <div class="d-flex gap-2 justify-content-center">
-                        <a th:href="@{/new}" class="btn btn-outline-success">
-                            Create a repository
-                        </a>
-                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
-                            Import from GitHub
-                        </button>
-                    </div>
+            <div class="list-group list-group-flush">
+                <!-- Personal -->
+                <div class="list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center">
+                    <strong>Personal</strong>
+                    <span class="badge bg-secondary ms-2" th:text="${personalRepos.size()}"></span>
                 </div>
-                <div th:if="${repositories != null and !repositories.isEmpty()}"
-                     class="list-group list-group-flush">
-                    <a th:each="repo : ${repositories}"
+                <div th:if="${personalRepos.isEmpty()}" class="list-group-item text-muted small ps-5">
+                    No personal repositories
+                </div>
+                <a th:each="repo : ${personalRepos}"
+                   th:href="@{/{owner}/{name}(owner=${repo.ownerUsername}, name=${repo.name})}"
+                   class="list-group-item list-group-item-action ps-5">
+                    <div>
+                        <span th:text="${repo.name}" class="fw-bold"></span>
+                        <small th:if="${repo.description}" class="text-muted ms-2" th:text="${repo.description}"></small>
+                    </div>
+                </a>
+
+                <!-- Organizations -->
+                <th:block th:each="entry : ${orgRepos}">
+                    <a th:href="@{/org/{n}(n=${entry.key.name})}"
+                       class="list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center list-group-item-action">
+                        <strong th:text="${entry.key.name}"></strong>
+                        <span class="badge bg-secondary ms-2" th:text="${entry.value.size()}"></span>
+                    </a>
+                    <div th:if="${entry.value.isEmpty()}" class="list-group-item text-muted small ps-5">
+                        No repositories
+                    </div>
+                    <a th:each="repo : ${entry.value}"
                        th:href="@{/{owner}/{name}(owner=${repo.ownerUsername}, name=${repo.name})}"
-                       class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">
-                                    <span th:text="${repo.ownerUsername}" class="text-muted"></span>
-                                    /
-                                    <span th:text="${repo.name}" class="fw-bold"></span>
-                                </h6>
-                                <small th:text="${repo.description}" class="text-muted"></small>
-                            </div>
+                       class="list-group-item list-group-item-action ps-5">
+                        <div>
+                            <span th:text="${repo.name}" class="fw-bold"></span>
+                            <small th:if="${repo.description}" class="text-muted ms-2" th:text="${repo.description}"></small>
                         </div>
                     </a>
-                </div>
+                </th:block>
             </div>
         </div>
     </div>
 
-    <!-- GitHub Repository Import 모달 -->
+    <!-- New Repository 모달 -->
+    <div class="modal fade" id="newRepoModal" tabindex="-1" aria-labelledby="newRepoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newRepoModalLabel">Create a new repository</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/new}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="newRepoName" class="form-label fw-bold">Repository name</label>
+                            <input type="text" class="form-control" id="newRepoName" name="name"
+                                   placeholder="my-project" required autofocus>
+                            <small class="form-text text-muted">Letters, numbers, dots, hyphens and underscores only.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRepoDesc" class="form-label fw-bold">Description <span class="text-muted fw-normal">(optional)</span></label>
+                            <textarea class="form-control" id="newRepoDesc" name="description" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3" th:if="${organizations != null and !organizations.isEmpty()}">
+                            <label class="form-label fw-bold">Organization</label>
+                            <select class="form-select" name="organizationId">
+                                <option value="">Personal (me)</option>
+                                <option th:each="org : ${organizations}"
+                                        th:value="${org.id}"
+                                        th:text="${org.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRepoDefaultBranch" class="form-label fw-bold">Default branch</label>
+                            <input type="text" class="form-control" id="newRepoDefaultBranch" name="defaultBranch"
+                                   value="main" style="max-width: 200px;">
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newRepoReadme" name="initWithReadme" value="true" checked>
+                            <label class="form-check-label" for="newRepoReadme">Initialize with a README file</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Create repository</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- GitHub Import 모달 -->
     <div class="modal fade" id="githubRepoModal" tabindex="-1" aria-labelledby="githubRepoModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -69,7 +125,7 @@
                         </svg>
                         Import from GitHub
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="p-3 border-bottom sticky-top bg-body" style="z-index:10">
@@ -101,8 +157,19 @@
                         </button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <a th:href="@{/import}" class="btn btn-outline-secondary btn-sm">URL 직접 입력으로 Import</a>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div class="d-flex align-items-center gap-2"
+                         th:if="${organizations != null and !organizations.isEmpty()}">
+                        <label class="small text-muted mb-0">Organization:</label>
+                        <select id="importOrgSelect" class="form-select form-select-sm" style="width:auto;">
+                            <option value="">Personal</option>
+                            <option th:each="org : ${organizations}"
+                                    th:value="${org.id}"
+                                    th:text="${org.name}"></option>
+                        </select>
+                    </div>
+                    <div th:if="${organizations == null or organizations.isEmpty()}"></div>
+                    <a th:href="@{/import}" class="btn btn-outline-secondary btn-sm">URL 직접 입력</a>
                 </div>
             </div>
         </div>
@@ -129,7 +196,6 @@
         var hasMore = true;
 
         document.getElementById('githubRepoModal').addEventListener('show.bs.modal', function () {
-            // 항상 새로 로드 (GitHub 연동 후 다시 열릴 수 있으므로)
             currentPage = 1;
             allRepos = [];
             loadRepos();
@@ -155,7 +221,6 @@
             fetch('/github/repos?page=' + page + '&perPage=100')
                 .then(function (res) {
                     if (res.status === 400) {
-                        // 토큰 없음 → GitHub 연동 필요
                         throw { noToken: true };
                     }
                     if (!res.ok) throw new Error('Failed to fetch');
@@ -309,9 +374,12 @@
             }
 
             var csrfToken = getCookie('XSRF-TOKEN');
+            var orgSelect = document.getElementById('importOrgSelect');
+            var orgId = orgSelect ? orgSelect.value : '';
             var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
                 + '&name=' + encodeURIComponent(repo.name)
                 + '&description=' + encodeURIComponent(repo.description || '')
+                + (orgId ? '&organizationId=' + encodeURIComponent(orgId) : '')
                 + '&_csrf=' + encodeURIComponent(csrfToken);
 
             fetch('/import', {

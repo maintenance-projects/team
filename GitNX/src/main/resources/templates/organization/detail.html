@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="${org.name} + ' - Organization'">Organization</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 th:text="${org.name}"></h2>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#newRepoModal">
+                    + New Repository
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
+                    Import Repository
+                </button>
+            </div>
+        </div>
+        <p th:if="${org.description}" class="text-muted" th:text="${org.description}"></p>
+
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link active" th:href="@{/org/{n}(n=${org.name})}">Repositories</a>
+            </li>
+            <li class="nav-item" th:if="${isOwner}">
+                <a class="nav-link" th:href="@{/org/{n}/settings(n=${org.name})}">Settings</a>
+            </li>
+        </ul>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Repositories</strong>
+            </div>
+            <div class="card-body">
+                <div th:if="${repositories == null or repositories.isEmpty()}"
+                     class="text-center text-muted py-4">
+                    <p>No repositories in this organization yet.</p>
+                    <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#newRepoModal">
+                        Create a repository
+                    </button>
+                </div>
+                <div th:if="${repositories != null and !repositories.isEmpty()}"
+                     class="list-group list-group-flush">
+                    <a th:each="repo : ${repositories}"
+                       th:href="@{/{owner}/{name}(owner=${repo.ownerUsername}, name=${repo.name})}"
+                       class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    <span th:text="${repo.ownerUsername}" class="text-muted"></span>
+                                    /
+                                    <span th:text="${repo.name}" class="fw-bold"></span>
+                                </h6>
+                                <small th:text="${repo.description}" class="text-muted"></small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Repository 모달 (Organization 자동 선택) -->
+    <div class="modal fade" id="newRepoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create a new repository</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/new}" method="post">
+                    <input type="hidden" name="organizationId" th:value="${org.id}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Organization</label>
+                            <input type="text" class="form-control" th:value="${org.name}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRepoName" class="form-label fw-bold">Repository name</label>
+                            <input type="text" class="form-control" id="newRepoName" name="name"
+                                   placeholder="my-project" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRepoDesc" class="form-label fw-bold">Description <span class="text-muted fw-normal">(optional)</span></label>
+                            <textarea class="form-control" id="newRepoDesc" name="description" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRepoBranch" class="form-label fw-bold">Default branch</label>
+                            <input type="text" class="form-control" id="newRepoBranch" name="defaultBranch"
+                                   value="main" style="max-width:200px;">
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newRepoReadme" name="initWithReadme" value="true" checked>
+                            <label class="form-check-label" for="newRepoReadme">Initialize with a README file</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Create repository</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    <!-- GitHub Import 모달 -->
+    <div class="modal fade" id="githubRepoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-github me-2" viewBox="0 0 16 16">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                        Import to <span th:text="${org.name}"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="p-3 border-bottom sticky-top bg-body" style="z-index:10">
+                        <input type="text" class="form-control" id="ghSearchInput" placeholder="Search repositories...">
+                    </div>
+                    <div id="ghLoading" class="text-center py-5">
+                        <div class="spinner-border text-secondary" role="status"></div>
+                        <p class="text-muted mt-2">GitHub 레포지토리 불러오는 중...</p>
+                    </div>
+                    <div id="ghRepoList" class="list-group list-group-flush" style="display:none;"></div>
+                    <div id="ghError" class="text-center py-5" style="display:none;">
+                        <p id="ghErrorMsg" class="text-danger"></p>
+                        <div id="ghLinkBtn" style="display:none;">
+                            <p class="text-muted">GitHub 계정을 연동하면 레포지토리를 불러올 수 있습니다.</p>
+                            <a th:href="@{/settings/github/link(returnUrl='/org/' + ${org.name})}" class="btn btn-dark">GitHub 계정 연동하기</a>
+                        </div>
+                    </div>
+                    <div id="ghLoadMore" class="text-center py-3 border-top" style="display:none;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadMoreRepos()">더 불러오기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import 진행 모달 -->
+    <div class="modal fade" id="importingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-success mb-3" role="status"></div>
+                    <h5 id="importingRepoName">Importing repository...</h5>
+                    <p class="text-muted">잠시만 기다려주세요</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        var orgId = /*[[${org.id}]]*/ '';
+        var allRepos = [];
+        var currentPage = 1;
+        var hasMore = true;
+
+        document.getElementById('githubRepoModal').addEventListener('show.bs.modal', function () {
+            currentPage = 1; allRepos = []; loadRepos();
+        });
+        document.getElementById('ghSearchInput').addEventListener('input', function () {
+            var q = this.value.toLowerCase();
+            renderRepos(allRepos.filter(function (r) {
+                return r.full_name.toLowerCase().includes(q) || (r.description && r.description.toLowerCase().includes(q));
+            }));
+        });
+        function loadRepos() {
+            document.getElementById('ghLoading').style.display = 'block';
+            document.getElementById('ghRepoList').style.display = 'none';
+            document.getElementById('ghError').style.display = 'none';
+            document.getElementById('ghLoadMore').style.display = 'none';
+            fetchReposPage(1);
+        }
+        function fetchReposPage(page) {
+            fetch('/github/repos?page=' + page + '&perPage=100')
+                .then(function (res) {
+                    if (res.status === 400) throw { noToken: true };
+                    if (!res.ok) throw new Error('Failed to fetch');
+                    hasMore = res.headers.get('X-GitHub-Link') && res.headers.get('X-GitHub-Link').includes('rel="next"');
+                    return res.json();
+                })
+                .then(function (repos) {
+                    if (page === 1) allRepos = [];
+                    allRepos = allRepos.concat(repos);
+                    currentPage = page;
+                    document.getElementById('ghLoading').style.display = 'none';
+                    document.getElementById('ghRepoList').style.display = 'block';
+                    var q = document.getElementById('ghSearchInput').value.toLowerCase();
+                    renderRepos(q ? allRepos.filter(function (r) { return r.full_name.toLowerCase().includes(q); }) : allRepos);
+                    if (hasMore) document.getElementById('ghLoadMore').style.display = 'block';
+                })
+                .catch(function (err) {
+                    document.getElementById('ghLoading').style.display = 'none';
+                    document.getElementById('ghError').style.display = 'block';
+                    if (err.noToken) {
+                        document.getElementById('ghErrorMsg').textContent = 'GitHub 계정이 연동되어 있지 않습니다.';
+                        document.getElementById('ghLinkBtn').style.display = 'block';
+                    } else {
+                        document.getElementById('ghErrorMsg').textContent = 'GitHub 레포지토리를 불러올 수 없습니다: ' + (err.message || '');
+                    }
+                });
+        }
+        function loadMoreRepos() { document.getElementById('ghLoadMore').style.display = 'none'; fetchReposPage(currentPage + 1); }
+        function renderRepos(repos) {
+            var list = document.getElementById('ghRepoList');
+            list.innerHTML = '';
+            if (repos.length === 0) { list.innerHTML = '<div class="text-center py-4 text-muted">레포지토리를 찾을 수 없습니다</div>'; return; }
+            var groups = {}, personalOwner = null;
+            repos.forEach(function (r) {
+                var ol = r.owner.login, ot = r.owner.type;
+                if (!groups[ol]) groups[ol] = { login: ol, avatar: r.owner.avatar_url, type: ot, repos: [] };
+                groups[ol].repos.push(r);
+                if (ot === 'User') personalOwner = ol;
+            });
+            Object.keys(groups).sort(function (a, b) { if (a === personalOwner) return -1; if (b === personalOwner) return 1; return a.localeCompare(b); }).forEach(function (ol) {
+                var g = groups[ol], ip = g.type === 'User';
+                var h = document.createElement('div');
+                h.className = 'list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center';
+                h.style.cursor = 'pointer';
+                h.onclick = function () {
+                    var items = list.querySelectorAll('[data-ro="' + ol + '"]');
+                    var ch = h.querySelector('.chv');
+                    var c = items[0] && items[0].style.display === 'none';
+                    items.forEach(function (el) { el.style.display = c ? '' : 'none'; });
+                    ch.textContent = c ? '\u25BE' : '\u25B8';
+                };
+                h.innerHTML = '<span class="chv me-2" style="font-size:12px;width:12px;display:inline-block">\u25BE</span><img src="' + g.avatar + '" width="22" height="22" class="rounded-circle me-2"><strong>' + esc(ip ? 'Personal' : ol) + '</strong><span class="badge bg-secondary ms-2">' + g.repos.length + '</span>';
+                list.appendChild(h);
+                g.repos.forEach(function (repo) {
+                    var it = document.createElement('a');
+                    it.href = '#'; it.className = 'list-group-item list-group-item-action py-2 ps-5'; it.setAttribute('data-ro', ol);
+                    it.onclick = function (e) { e.preventDefault(); selectRepo(repo); };
+                    var desc = repo.description ? '<div class="text-muted small text-truncate">' + esc(repo.description) + '</div>' : '';
+                    var lang = repo.language ? '<span class="badge bg-light text-dark me-1" style="font-size:10px">' + repo.language + '</span>' : '';
+                    it.innerHTML = '<div class="d-flex justify-content-between align-items-center"><div class="me-2" style="min-width:0"><span>' + esc(repo.name) + '</span>' + desc + '<div class="mt-1">' + lang + '</div></div><button class="btn btn-sm btn-outline-success flex-shrink-0">Import</button></div>';
+                    list.appendChild(it);
+                });
+            });
+        }
+        function selectRepo(repo) {
+            bootstrap.Modal.getInstance(document.getElementById('githubRepoModal')).hide();
+            document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
+            new bootstrap.Modal(document.getElementById('importingModal')).show();
+            function gc(n) { var m = document.cookie.match(new RegExp('(^| )' + n + '=([^;]+)')); return m ? decodeURIComponent(m[2]) : ''; }
+            var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url) + '&name=' + encodeURIComponent(repo.name) + '&description=' + encodeURIComponent(repo.description || '') + '&organizationId=' + encodeURIComponent(orgId) + '&_csrf=' + encodeURIComponent(gc('XSRF-TOKEN'));
+            fetch('/import', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, redirect: 'follow' })
+                .then(function (r) { if (r.redirected) window.location.href = r.url; else window.location.reload(); })
+                .catch(function () { bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide(); alert('Import 실패'); });
+        }
+        function esc(t) { var d = document.createElement('div'); d.appendChild(document.createTextNode(t)); return d.innerHTML; }
+    </script>
+    </div>
+</div>
+</body>
+</html>

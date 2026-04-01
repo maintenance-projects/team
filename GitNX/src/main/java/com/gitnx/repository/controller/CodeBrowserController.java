@@ -40,7 +40,7 @@ public class CodeBrowserController {
             "css", "js", "img", "assets", "static", "error",
             "login", "register", "logout", "dashboard", "new", "import",
             "settings", "admin", "api", "git", "explore", "help", "about",
-            "oauth2", "repo", "git-auth"
+            "oauth2", "repo", "git-auth", "org", "organizations", "github"
     );
 
     private final GitRepositoryService gitRepositoryService;

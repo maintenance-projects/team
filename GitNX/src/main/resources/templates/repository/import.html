@@ -54,6 +54,16 @@
                                   th:field="*{description}" rows="2"></textarea>
                     </div>
 
+                    <div class="mb-3" th:if="${organizations != null and !organizations.isEmpty()}">
+                        <label for="organizationId" class="form-label fw-bold">Organization</label>
+                        <select class="form-select" id="organizationId" th:field="*{organizationId}">
+                            <option value="">Personal (me)</option>
+                            <option th:each="org : ${organizations}"
+                                    th:value="${org.id}"
+                                    th:text="${org.name}"></option>
+                        </select>
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success">Import</button>
                         <a th:href="@{/dashboard}" class="btn btn-outline-secondary">Cancel</a>

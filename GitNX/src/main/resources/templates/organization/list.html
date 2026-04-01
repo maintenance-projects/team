@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>Organizations</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Organizations</h2>
+            <a th:href="@{/organizations/new}" class="btn btn-success">+ New Organization</a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div th:if="${organizations == null or organizations.isEmpty()}"
+                     class="text-center text-muted py-5">
+                    <h5>No organizations yet</h5>
+                    <p>Create your first organization to get started.</p>
+                    <a th:href="@{/organizations/new}" class="btn btn-outline-success">
+                        Create an organization
+                    </a>
+                </div>
+                <div th:if="${organizations != null and !organizations.isEmpty()}"
+                     class="list-group list-group-flush">
+                    <a th:each="org : ${organizations}"
+                       th:href="@{/org/{name}(name=${org.name})}"
+                       class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-bold" th:text="${org.name}"></h6>
+                                <small th:text="${org.description}" class="text-muted"></small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

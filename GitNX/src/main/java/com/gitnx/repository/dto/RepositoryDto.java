@@ -17,6 +17,7 @@ public class RepositoryDto {
     private RepositoryVisibility visibility;
     private String defaultBranch;
     private String ownerUsername;
+    private Long organizationId;
     private LocalDateTime createdAt;
 
     public static RepositoryDto from(GitRepository repo) {
@@ -27,6 +28,7 @@ public class RepositoryDto {
                 .visibility(repo.getVisibility())
                 .defaultBranch(repo.getDefaultBranch())
                 .ownerUsername(repo.getOwner().getUsername())
+                .organizationId(repo.getOrganization() != null ? repo.getOrganization().getId() : null)
                 .createdAt(repo.getCreatedAt())
                 .build();
     }

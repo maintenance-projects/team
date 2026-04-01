@@ -1,8 +1,9 @@
 package com.gitnx.repository.controller;
 
+import com.gitnx.organization.entity.Organization;
+import com.gitnx.organization.service.OrganizationService;
 import com.gitnx.repository.dto.CreateRepositoryRequest;
 import com.gitnx.repository.dto.ImportRepositoryRequest;
-import com.gitnx.repository.dto.RepositoryDto;
 import com.gitnx.repository.entity.GitRepository;
 import com.gitnx.repository.service.GitRepositoryService;
 import com.gitnx.user.entity.User;
@@ -27,10 +28,12 @@ public class RepositoryController {
 
     private final GitRepositoryService gitRepositoryService;
     private final UserService userService;
+    private final OrganizationService organizationService;
 
     @GetMapping("/new")
-    public String newRepoForm(Model model) {
+    public String newRepoForm(@AuthenticationPrincipal UserDetails userDetails, Model model) {
         model.addAttribute("createRequest", new CreateRepositoryRequest());
+        model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
         return "repository/new";
     }
 
@@ -38,8 +41,10 @@ public class RepositoryController {
     public String createRepo(@Valid @ModelAttribute("createRequest") CreateRepositoryRequest request,
                              BindingResult bindingResult,
                              @AuthenticationPrincipal UserDetails userDetails,
+                             Model model,
                              RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
+            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/new";
         }
 
@@ -48,13 +53,15 @@ public class RepositoryController {
             return "redirect:/" + userDetails.getUsername() + "/" + request.getName();
         } catch (IllegalArgumentException e) {
             bindingResult.reject("error", e.getMessage());
+            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/new";
         }
     }
 
     @GetMapping("/import")
-    public String importRepoForm(Model model) {
+    public String importRepoForm(@AuthenticationPrincipal UserDetails userDetails, Model model) {
         model.addAttribute("importRequest", new ImportRepositoryRequest());
+        model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
         return "repository/import";
     }
 
@@ -62,8 +69,10 @@ public class RepositoryController {
     public String importRepo(@Valid @ModelAttribute("importRequest") ImportRepositoryRequest request,
                              BindingResult bindingResult,
                              @AuthenticationPrincipal UserDetails userDetails,
+                             Model model,
                              RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
+            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/import";
         }
 
@@ -80,9 +89,11 @@ public class RepositoryController {
             return "redirect:/" + userDetails.getUsername() + "/" + imported.getName();
         } catch (IllegalArgumentException e) {
             bindingResult.reject("error", e.getMessage());
+            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/import";
         } catch (Exception e) {
             bindingResult.reject("error", "Failed to import repository: " + e.getMessage());
+            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/import";
         }
     }

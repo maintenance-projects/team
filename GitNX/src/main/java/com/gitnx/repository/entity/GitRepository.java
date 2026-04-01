@@ -1,6 +1,7 @@
 package com.gitnx.repository.entity;
 
 import com.gitnx.common.entity.BaseTimeEntity;
+import com.gitnx.organization.entity.Organization;
 import com.gitnx.repository.enums.RepositoryVisibility;
 import com.gitnx.user.entity.User;
 import jakarta.persistence.*;
@@ -42,4 +43,8 @@ public class GitRepository extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
 }
