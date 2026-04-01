@@ -2,6 +2,7 @@ package com.gitnx.common.config;
 
 import com.gitnx.repository.entity.GitRepository;
 import com.gitnx.repository.enums.RepositoryVisibility;
+import java.util.List;
 import com.gitnx.repository.repository.GitRepositoryJpaRepository;
 import com.gitnx.repository.repository.RepositoryMemberJpaRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -80,8 +81,9 @@ public class GitServletConfig {
             String repoName = parts[1];
 
             // Look up in database by owner + repo name
-            GitRepository gitRepo = repoJpaRepository.findByOwnerUsernameAndName(ownerName, repoName)
-                    .orElseThrow(() -> new RepositoryNotFoundException(name));
+            List<GitRepository> repos = repoJpaRepository.findByOwnerUsernameAndName(ownerName, repoName);
+            if (repos.isEmpty()) throw new RepositoryNotFoundException(name);
+            GitRepository gitRepo = repos.get(0);
 
             File repoDir = new File(gitRepo.getDiskPath());
             if (!repoDir.exists()) {
