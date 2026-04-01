@@ -15,7 +15,11 @@ public interface GitRepositoryJpaRepository extends JpaRepository<GitRepository,
 
     Optional<GitRepository> findByOwnerUsernameAndNameAndOrganizationIsNull(String ownerUsername, String name);
 
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM GitRepository r JOIN FETCH r.owner WHERE r.owner.username = :ownerUsername AND r.name = :name AND r.organization.id = :organizationId")
     Optional<GitRepository> findByOwnerUsernameAndNameAndOrganizationId(String ownerUsername, String name, Long organizationId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM GitRepository r JOIN FETCH r.owner WHERE r.name = :name AND r.organization.id = :organizationId")
+    Optional<GitRepository> findByNameAndOrganizationId(String name, Long organizationId);
 
     boolean existsByOwnerAndName(User owner, String name);
 

@@ -44,8 +44,7 @@ public class OrgRepoController {
     public String repoRoot(@PathVariable String orgName, @PathVariable String repo,
                            @AuthenticationPrincipal UserDetails userDetails, Model model) {
         Organization org = organizationService.getByName(orgName);
-        GitRepository gitRepo = gitRepositoryService.getByOwnerAndNameAndOrganization(
-                gitRepo(org, repo).getOwner().getUsername(), repo, org.getId());
+        GitRepository gitRepo = gitRepo(org, repo);
         String branch = gitRepo.getDefaultBranch();
 
         populateModel(model, org, gitRepo, branch, userDetails);
@@ -123,13 +122,7 @@ public class OrgRepoController {
     }
 
     private GitRepository gitRepo(Organization org, String repoName) {
-        List<RepositoryDto> repos = gitRepositoryService.listByOrganization(org.getId());
-        return repos.stream()
-                .filter(r -> r.getName().equals(repoName))
-                .findFirst()
-                .map(r -> gitRepositoryService.getByOwnerAndNameAndOrganization(r.getOwnerUsername(), repoName, org.getId()))
-                .orElseThrow(() -> new com.gitnx.common.exception.ResourceNotFoundException(
-                        "Repository not found: " + org.getName() + "/" + repoName));
+        return gitRepositoryService.getByNameAndOrganization(repoName, org.getId());
     }
 
     private void populateModel(Model model, Organization org, GitRepository gitRepo,

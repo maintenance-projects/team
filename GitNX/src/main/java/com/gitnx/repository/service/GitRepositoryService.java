@@ -357,6 +357,12 @@ public class GitRepositoryService {
                         "Repository not found: " + owner + "/" + name));
     }
 
+    public GitRepository getByNameAndOrganization(String name, Long organizationId) {
+        return repoJpaRepository.findByNameAndOrganizationId(name, organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Repository not found: " + name));
+    }
+
     @Transactional
     public void delete(String owner, String name) {
         GitRepository repo = getByOwnerAndName(owner, name);
