@@ -9,7 +9,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "ng_repository", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"owner_id", "name"})
+        @UniqueConstraint(columnNames = {"owner_id", "name", "organization_id"})
 })
 @Getter
 @Setter
