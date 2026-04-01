@@ -35,7 +35,7 @@
                         <span class="badge bg-secondary ms-2" th:text="${entry.value.size()}"></span>
                     </a>
                     <div th:if="${entry.value.isEmpty()}" class="list-group-item text-muted small ps-5">No repositories</div>
-                    <a th:each="repo : ${entry.value}" th:href="@{/{o}/{n}(o=${repo.ownerUsername}, n=${repo.name})}" class="list-group-item list-group-item-action ps-5">
+                    <a th:each="repo : ${entry.value}" th:href="@{/org/{o}/{n}(o=${entry.key.name}, n=${repo.name})}" class="list-group-item list-group-item-action ps-5">
                         <span th:text="${repo.name}" class="fw-bold"></span>
                         <small th:if="${repo.description}" class="text-muted ms-2" th:text="${repo.description}"></small>
                     </a>

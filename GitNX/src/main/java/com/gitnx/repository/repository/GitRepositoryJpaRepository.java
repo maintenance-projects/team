@@ -13,6 +13,10 @@ public interface GitRepositoryJpaRepository extends JpaRepository<GitRepository,
 
     Optional<GitRepository> findByOwnerUsernameAndName(String ownerUsername, String name);
 
+    Optional<GitRepository> findByOwnerUsernameAndNameAndOrganizationIsNull(String ownerUsername, String name);
+
+    Optional<GitRepository> findByOwnerUsernameAndNameAndOrganizationId(String ownerUsername, String name, Long organizationId);
+
     boolean existsByOwnerAndName(User owner, String name);
 
     boolean existsByOwnerAndNameAndOrganizationId(User owner, String name, Long organizationId);

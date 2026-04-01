@@ -30,8 +30,8 @@
                     <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#newRepoModal">Create a repository</button>
                 </div>
                 <div th:if="${repositories != null and !repositories.isEmpty()}" class="list-group list-group-flush">
-                    <a th:each="repo : ${repositories}" th:href="@{/{o}/{n}(o=${repo.ownerUsername}, n=${repo.name})}" class="list-group-item list-group-item-action">
-                        <h6 class="mb-1"><span th:text="${repo.ownerUsername}" class="text-muted"></span> / <span th:text="${repo.name}" class="fw-bold"></span></h6>
+                    <a th:each="repo : ${repositories}" th:href="@{/org/{o}/{n}(o=${org.name}, n=${repo.name})}" class="list-group-item list-group-item-action">
+                        <h6 class="mb-1"><span th:text="${org.name}" class="text-muted"></span> / <span th:text="${repo.name}" class="fw-bold"></span></h6>
                         <small th:text="${repo.description}" class="text-muted"></small>
                     </a>
                 </div>

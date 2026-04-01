@@ -346,7 +346,13 @@ public class GitRepositoryService {
     }
 
     public GitRepository getByOwnerAndName(String owner, String name) {
-        return repoJpaRepository.findByOwnerUsernameAndName(owner, name)
+        return repoJpaRepository.findByOwnerUsernameAndNameAndOrganizationIsNull(owner, name)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Repository not found: " + owner + "/" + name));
+    }
+
+    public GitRepository getByOwnerAndNameAndOrganization(String owner, String name, Long organizationId) {
+        return repoJpaRepository.findByOwnerUsernameAndNameAndOrganizationId(owner, name, organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Repository not found: " + owner + "/" + name));
     }
