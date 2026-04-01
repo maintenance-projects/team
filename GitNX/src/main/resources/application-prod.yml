@@ -26,6 +26,13 @@ gitnx:
   clone:
     http-base-url: ${GITNX_CLONE_URL:https://git.ultari.co.kr/repo}
 
+workbench:
+  datasource:
+    url: ${WB_DB_URL:jdbc:mariadb://10.0.0.177:7706/WB_ORGANIZATION}
+    username: ${WB_DB_USERNAME:root}
+    password: ${WB_DB_PASSWORD:ultari12#$}
+    driver-class-name: org.mariadb.jdbc.Driver
+
 logging:
   level:
     com.gitnx: INFO

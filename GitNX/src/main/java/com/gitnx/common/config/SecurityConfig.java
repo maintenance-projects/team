@@ -29,6 +29,7 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final GitAuthenticationProvider gitAuthenticationProvider;
+    private final WorkbenchAuthenticationProvider workbenchAuthenticationProvider;
     private final com.gitnx.user.service.GitNxOAuth2SuccessHandler gitNxOAuth2SuccessHandler;
 
     @Bean
@@ -44,7 +45,6 @@ public class SecurityConfig {
 
     /**
      * REST API chain - handles /api/** requests.
-     * Uses HTTP Basic auth (stateless) with CORS for workbench frontend.
      */
     @Bean
     @Order(0)
@@ -77,9 +77,6 @@ public class SecurityConfig {
 
     /**
      * Git HTTP protocol chain - handles /repo/** requests.
-     * Uses HTTP Basic auth (stateless).
-     * - git-receive-pack (push) requires authentication
-     * - git-upload-pack (clone/fetch) is public
      */
     @Bean
     @Order(1)
@@ -87,11 +84,8 @@ public class SecurityConfig {
         http
             .securityMatcher(new AntPathRequestMatcher("/repo/**"))
             .authorizeHttpRequests(auth -> auth
-                // receive-pack POST endpoint requires auth
                 .requestMatchers(new AntPathRequestMatcher("/repo/**/git-receive-pack")).authenticated()
-                // info/refs?service=git-receive-pack also requires auth
                 .requestMatchers(new GitReceivePackInfoRefsRequestMatcher()).authenticated()
-                // Everything else (clone/fetch/info) is public
                 .anyRequest().permitAll()
             )
             .httpBasic(basic -> basic
@@ -107,6 +101,7 @@ public class SecurityConfig {
 
     /**
      * Web application chain - handles all other requests.
+     * Workbench form login + GitHub OAuth login
      */
     @Bean
     @Order(2)
@@ -122,6 +117,14 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             )
+            .formLogin(form -> form
+                .loginPage("/login")
+                .loginProcessingUrl("/login")
+                .defaultSuccessUrl("/dashboard", true)
+                .failureUrl("/login?error=true")
+                .permitAll()
+            )
+            .authenticationManager(new ProviderManager(workbenchAuthenticationProvider))
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/login")
                 .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))
@@ -139,10 +142,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Matches info/refs requests with service=git-receive-pack parameter.
-     * These need authentication because they initiate a push session.
-     */
     private static class GitReceivePackInfoRefsRequestMatcher implements RequestMatcher {
         @Override
         public boolean matches(HttpServletRequest request) {

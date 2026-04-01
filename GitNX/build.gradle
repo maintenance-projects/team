@@ -40,6 +40,7 @@ dependencies {
 
     // Database
     runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
     // JGit
     implementation 'org.eclipse.jgit:org.eclipse.jgit:7.1.0.202411261347-r'
