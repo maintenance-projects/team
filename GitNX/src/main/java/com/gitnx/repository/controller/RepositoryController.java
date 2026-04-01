@@ -18,6 +18,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -40,10 +41,13 @@ public class RepositoryController {
     @PostMapping("/new")
     public String createRepo(@Valid @ModelAttribute("createRequest") CreateRepositoryRequest request,
                              BindingResult bindingResult,
+                             @RequestParam(required = false) Long organizationId,
                              @AuthenticationPrincipal UserDetails userDetails,
                              Model model,
                              RedirectAttributes redirectAttributes) {
-        if (bindingResult.hasErrors()) {
+        request.setOrganizationId(organizationId);
+
+        if (bindingResult.hasErrors() && !bindingResult.hasFieldErrors("organizationId")) {
             model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/new";
         }
@@ -68,10 +72,14 @@ public class RepositoryController {
     @PostMapping("/import")
     public String importRepo(@Valid @ModelAttribute("importRequest") ImportRepositoryRequest request,
                              BindingResult bindingResult,
+                             @RequestParam(required = false) Long organizationId,
                              @AuthenticationPrincipal UserDetails userDetails,
                              Model model,
                              RedirectAttributes redirectAttributes) {
-        if (bindingResult.hasErrors()) {
+        // organizationId를 수동으로 세팅 (빈 문자열 바인딩 에러 방지)
+        request.setOrganizationId(organizationId);
+
+        if (bindingResult.hasErrors() && !bindingResult.hasFieldErrors("organizationId")) {
             model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
             return "repository/import";
         }
