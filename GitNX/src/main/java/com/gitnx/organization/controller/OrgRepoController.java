@@ -11,6 +11,7 @@ import com.gitnx.repository.service.GitRepositoryService;
 import com.gitnx.repository.service.RepositoryMemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +27,7 @@ import java.util.List;
  * Organization 소속 레포지토리의 코드 브라우저.
  * URL: /org/{orgName}/{repo}, /org/{orgName}/{repo}/tree/..., etc.
  */
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class OrgRepoController {
@@ -43,6 +45,7 @@ public class OrgRepoController {
     @GetMapping("/org/{orgName}/{repo}")
     public String repoRoot(@PathVariable String orgName, @PathVariable String repo,
                            @AuthenticationPrincipal UserDetails userDetails, Model model) {
+        log.info("[OrgRepo] repoRoot: org={}, repo={}", orgName, repo);
         Organization org = organizationService.getByName(orgName);
         GitRepository gitRepo = gitRepo(org, repo);
         String branch = gitRepo.getDefaultBranch();
