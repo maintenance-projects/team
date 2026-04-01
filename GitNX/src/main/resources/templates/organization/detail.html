@@ -167,25 +167,34 @@
         }
 
         function selectRepo(repo) {
-            bootstrap.Modal.getInstance(document.getElementById('githubRepoModal')).hide();
-            document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
-            new bootstrap.Modal(document.getElementById('importingModal')).show();
+            console.log('[Import] selectRepo called:', repo.full_name);
+            try {
+                bootstrap.Modal.getInstance(document.getElementById('githubRepoModal')).hide();
+                document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
+                new bootstrap.Modal(document.getElementById('importingModal')).show();
 
-            var csrfInput = document.querySelector('input[name="_csrf"]');
-            var csrfToken = csrfInput ? csrfInput.value : '';
-            if (!csrfToken) { var m = document.cookie.match(/(^| )XSRF-TOKEN=([^;]+)/); if (m) csrfToken = decodeURIComponent(m[2]); }
+                var csrfInput = document.querySelector('input[name="_csrf"]');
+                var csrfToken = csrfInput ? csrfInput.value : '';
+                if (!csrfToken) { var m = document.cookie.match(/(^| )XSRF-TOKEN=([^;]+)/); if (m) csrfToken = decodeURIComponent(m[2]); }
+                console.log('[Import] csrfToken:', csrfToken ? 'found' : 'MISSING');
 
-            var orgId = document.getElementById('fixedOrgId').value;
+                var orgId = document.getElementById('fixedOrgId').value;
+                console.log('[Import] orgId:', orgId);
 
-            var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
-                + '&name=' + encodeURIComponent(repo.name)
-                + '&description=' + encodeURIComponent(repo.description || '')
-                + '&organizationId=' + encodeURIComponent(orgId)
-                + '&_csrf=' + encodeURIComponent(csrfToken);
+                var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
+                    + '&name=' + encodeURIComponent(repo.name)
+                    + '&description=' + encodeURIComponent(repo.description || '')
+                    + '&organizationId=' + encodeURIComponent(orgId)
+                    + '&_csrf=' + encodeURIComponent(csrfToken);
+                console.log('[Import] POST body:', body);
 
-            fetch('/import', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':csrfToken}, body:body, redirect:'follow' })
-                .then(function(r){if(r.redirected)window.location.href=r.url;else if(r.ok)window.location.reload();else{bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();alert('Import 실패 (HTTP '+r.status+')');}})
-                .catch(function(){bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();alert('Import 실패');});
+                fetch('/import', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':csrfToken}, body:body, redirect:'follow' })
+                    .then(function(r){ console.log('[Import] response:', r.status, r.redirected, r.url); if(r.redirected)window.location.href=r.url;else if(r.ok)window.location.reload();else{bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();alert('Import 실패 (HTTP '+r.status+')');}})
+                    .catch(function(e){ console.error('[Import] fetch error:', e); bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();alert('Import 실패: '+e);});
+            } catch(e) {
+                console.error('[Import] JS error:', e);
+                alert('Import JS 에러: ' + e.message);
+            }
         }
         function esc(t){var d=document.createElement('div');d.appendChild(document.createTextNode(t));return d.innerHTML;}
     </script>
