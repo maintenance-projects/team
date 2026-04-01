@@ -208,12 +208,17 @@
             var importingModal = new bootstrap.Modal(document.getElementById('importingModal'));
             importingModal.show();
 
-            function getCookie(name) {
-                var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-                return match ? decodeURIComponent(match[2]) : '';
+            function getCsrfToken() {
+                // 1) 쿠키에서 읽기
+                var match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+                if (match) return decodeURIComponent(match[2]);
+                // 2) form hidden input에서 읽기
+                var input = document.querySelector('input[name="_csrf"]');
+                if (input) return input.value;
+                return '';
             }
 
-            var csrfToken = getCookie('XSRF-TOKEN');
+            var csrfToken = getCsrfToken();
             var orgSelect = document.getElementById('importOrgSelect');
             var fixedVal = document.getElementById('fixedOrgIdValue').value;
             var orgId = fixedVal || (orgSelect ? orgSelect.value : '');
@@ -225,12 +230,16 @@
 
             fetch('/import', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-XSRF-TOKEN': csrfToken
+                },
                 body: body,
                 redirect: 'follow'
             }).then(function (res) {
                 if (res.redirected) window.location.href = res.url;
-                else window.location.reload();
+                else if (res.ok) window.location.reload();
+                else { importingModal.hide(); alert('Import 실패 (HTTP ' + res.status + ')'); }
             }).catch(function () {
                 importingModal.hide();
                 alert('Import에 실패했습니다. 다시 시도해주세요.');
