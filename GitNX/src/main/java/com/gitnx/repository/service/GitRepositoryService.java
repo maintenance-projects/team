@@ -137,6 +137,10 @@ public class GitRepositoryService {
         }
         String diskPath = jGitConfig.getBasePath() + "/" + pathPrefix + "/" + repoName + ".git";
         File repoDir = new File(diskPath);
+        // 이전 실패한 clone 잔여 디렉토리 정리
+        if (repoDir.exists()) {
+            cleanUpDirectory(repoDir);
+        }
         repoDir.getParentFile().mkdirs();
 
         try {

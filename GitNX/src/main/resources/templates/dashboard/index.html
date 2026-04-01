@@ -225,12 +225,13 @@
                         if(r.redirected) {
                             window.location.href = r.url;
                         } else {
-                            // 200이지만 redirect 안 됨 = 에러 페이지 반환
                             return r.text().then(function(html) {
                                 bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();
                                 // HTML에서 에러 메시지 추출
-                                var match = html.match(/class="alert alert-danger"[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/);
-                                var msg = match ? match[1] : 'Import에 실패했습니다.';
+                                var tmp = document.createElement('div'); tmp.innerHTML = html;
+                                var alertEl = tmp.querySelector('.alert-danger span') || tmp.querySelector('.alert-danger');
+                                var msg = alertEl ? alertEl.textContent.trim() : 'Import에 실패했습니다.';
+                                console.log('[Import] server error:', msg);
                                 alert(msg);
                             });
                         }
