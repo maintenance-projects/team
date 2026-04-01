@@ -47,9 +47,14 @@ public class RepositoryController {
                              RedirectAttributes redirectAttributes) {
         request.setOrganizationId(organizationId);
 
-        if (bindingResult.hasErrors() && !bindingResult.hasFieldErrors("organizationId")) {
-            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
-            return "repository/new";
+        if (bindingResult.hasErrors()) {
+            var realErrors = bindingResult.getFieldErrors().stream()
+                    .filter(e -> !"organizationId".equals(e.getField()) && !"visibility".equals(e.getField()))
+                    .toList();
+            if (!realErrors.isEmpty()) {
+                model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
+                return "repository/new";
+            }
         }
 
         try {
@@ -79,9 +84,15 @@ public class RepositoryController {
         // organizationId를 수동으로 세팅 (빈 문자열 바인딩 에러 방지)
         request.setOrganizationId(organizationId);
 
-        if (bindingResult.hasErrors() && !bindingResult.hasFieldErrors("organizationId")) {
-            model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
-            return "repository/import";
+        // organizationId 바인딩 에러는 무시
+        if (bindingResult.hasErrors()) {
+            var realErrors = bindingResult.getFieldErrors().stream()
+                    .filter(e -> !"organizationId".equals(e.getField()) && !"visibility".equals(e.getField()))
+                    .toList();
+            if (!realErrors.isEmpty()) {
+                model.addAttribute("organizations", organizationService.listByUser(userDetails.getUsername()));
+                return "repository/import";
+            }
         }
 
         // GitHub OAuth 토큰 자동 주입
