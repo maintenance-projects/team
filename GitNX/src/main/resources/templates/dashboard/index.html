@@ -121,14 +121,13 @@
                     </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
-                    <div class="d-flex align-items-center gap-2" th:if="${organizations != null and !organizations.isEmpty()}">
+                    <div class="d-flex align-items-center gap-2">
                         <label class="small text-muted mb-0">Organization:</label>
                         <select id="importOrgSelect" class="form-select form-select-sm" style="width:auto;">
                             <option value="">Personal</option>
                             <option th:each="org : ${organizations}" th:value="${org.id}" th:text="${org.name}"></option>
                         </select>
                     </div>
-                    <div th:if="${organizations == null or organizations.isEmpty()}"></div>
                     <a th:href="@{/import}" class="btn btn-outline-secondary btn-sm">URL 직접 입력</a>
                 </div>
             </div>
