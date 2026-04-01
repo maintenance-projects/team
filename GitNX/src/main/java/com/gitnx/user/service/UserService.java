@@ -8,6 +8,8 @@ import com.gitnx.user.repository.UserRepository;
 import com.gitnx.common.client.WorkbenchUserClient.WorkbenchUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final WorkbenchUserClient workbenchUserClient;
+    @Qualifier("workbenchJdbcTemplate")
+    private final JdbcTemplate workbenchJdbc;
 
     private static final Set<String> RESERVED_USERNAMES = Set.of(
             "login", "register", "logout", "dashboard", "new", "settings",
@@ -67,7 +71,7 @@ public class UserService {
     }
 
     /**
-     * username으로 로컬 DB에서 먼저 찾고, 없으면 Workbench API에서 조회 후 자동 생성.
+     * username으로 로컬 DB에서 먼저 찾고, 없으면 Workbench DB에서 조회 후 자동 생성.
      */
     @Transactional
     public User findOrCreateFromWorkbench(String username) {
@@ -75,21 +79,33 @@ public class UserService {
         Optional<User> local = userRepository.findByUsername(username);
         if (local.isPresent()) return local.get();
 
-        // 2. Workbench API로 유저 조회
-        WorkbenchUserClient.WorkbenchUser wbUser = workbenchUserClient.getUserDetail(username);
-        if (wbUser == null) {
+        // 2. Workbench DB에서 직접 조회
+        List<Map<String, Object>> rows = workbenchJdbc.queryForList(
+                "SELECT user_id, user_name, email FROM WB_ORGANIZATION.msg_user WHERE user_id = ?",
+                username);
+
+        if (rows.isEmpty()) {
             throw new IllegalArgumentException("User not found in Workbench: " + username);
         }
 
-        // 3. GitNX ng_user에 자동 생성
-        log.info("[UserService] Creating GitNX user from Workbench: userId={}, userName={}",
-                wbUser.getUserId(), wbUser.getUserName());
+        Map<String, Object> row = rows.get(0);
+        String userId = (String) row.get("user_id");
+        String userName = (String) row.get("user_name");
+        String userEmail = (String) row.get("email");
+
+        log.info("[UserService] Creating GitNX user from Workbench DB: userId={}, userName={}",
+                userId, userName);
+
+        String email = userEmail != null ? userEmail : userId + "@workbench.local";
+        if (userRepository.existsByEmail(email)) {
+            email = userId + "+" + System.currentTimeMillis() + "@workbench.local";
+        }
 
         User user = User.builder()
-                .username(wbUser.getUserId())
-                .email(wbUser.getUserEmail() != null ? wbUser.getUserEmail() : wbUser.getUserId() + "@workbench.local")
+                .username(userId)
+                .email(email)
                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                .displayName(wbUser.getUserName())
+                .displayName(userName)
                 .provider("WORKBENCH")
                 .build();
 

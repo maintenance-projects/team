@@ -42,6 +42,7 @@ public class SettingsController {
         model.addAttribute("gitRepo", gitRepo);
         model.addAttribute("members", members);
         model.addAttribute("activeTab", "settings");
+        model.addAttribute("isRepoOwner", true);
 
         return "repository/settings";
     }

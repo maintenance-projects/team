@@ -19,7 +19,7 @@
                th:href="@{/{o}/{r}/commits/{b}(o=${owner}, r=${repo}, b=${currentBranch ?: 'main'})}">Commits</a>
         </li>
         <li class="nav-item"
-            th:if="${#authentication != null and #authentication.name == owner}">
+            th:if="${isRepoOwner}">
             <a class="nav-link" th:classappend="${activeTab == 'settings'} ? 'active'"
                th:href="@{/{o}/{r}/settings(o=${owner}, r=${repo})}">Settings</a>
         </li>

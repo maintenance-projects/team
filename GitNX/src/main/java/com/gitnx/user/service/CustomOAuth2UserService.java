@@ -14,7 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +41,25 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         String accessToken = userRequest.getAccessToken().getTokenValue();
 
-        // 기존 사용자 찾거나 자동 회원가입
+        // GitHub 계정 연동 모드 (Workbench 사용자가 토큰만 저장)
+        String linkUsername = getSessionAttribute("githubLinkUsername");
+        if (linkUsername != null) {
+            User user = userRepository.findByUsername(linkUsername)
+                    .orElseThrow(() -> new OAuth2AuthenticationException("User not found: " + linkUsername));
+            user.setGithubAccessToken(accessToken);
+            userRepository.save(user);
+            log.info("GitHub token linked for user: {} (GitHub: {})", linkUsername, login);
+
+            Map<String, Object> userAttributes = new HashMap<>(attributes);
+            userAttributes.put("username", user.getUsername());
+            return new CustomOAuth2User(
+                    Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+                    userAttributes,
+                    user.getUsername()
+            );
+        }
+
+        // 일반 GitHub OAuth 로그인 플로우
         User user = userRepository.findByProviderAndProviderId("GITHUB", githubId)
                 .orElseGet(() -> findOrCreateUser(githubId, login, email, avatarUrl, name));
 
@@ -60,6 +81,22 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 userAttributes,
                 user.getUsername()
         );
+    }
+
+    private String getSessionAttribute(String name) {
+        try {
+            ServletRequestAttributes attrs =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpSession session = attrs.getRequest().getSession(false);
+                if (session != null) {
+                    return (String) session.getAttribute(name);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Failed to get session attribute: {}", name, e);
+        }
+        return null;
     }
 
     private User findOrCreateUser(String githubId, String login, String email, String avatarUrl, String name) {
