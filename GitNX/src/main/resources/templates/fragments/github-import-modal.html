@@ -82,8 +82,8 @@
         </div>
     </div>
 
-    <script th:inline="javascript">
-        var fixedOrgId = /*[[${orgId}]]*/ '';
+    <input type="hidden" id="fixedOrgIdValue" th:value="${orgId}">
+    <script>
         var allRepos = [];
         var currentPage = 1;
         var hasMore = true;
@@ -215,7 +215,8 @@
 
             var csrfToken = getCookie('XSRF-TOKEN');
             var orgSelect = document.getElementById('importOrgSelect');
-            var orgId = fixedOrgId || (orgSelect ? orgSelect.value : '');
+            var fixedVal = document.getElementById('fixedOrgIdValue').value;
+            var orgId = fixedVal || (orgSelect ? orgSelect.value : '');
             var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
                 + '&name=' + encodeURIComponent(repo.name)
                 + '&description=' + encodeURIComponent(repo.description || '')
