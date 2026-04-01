@@ -189,7 +189,19 @@
                 console.log('[Import] POST body:', body);
 
                 fetch('/import', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':csrfToken}, body:body, redirect:'follow' })
-                    .then(function(r){ console.log('[Import] response:', r.status, r.redirected, r.url); if(r.redirected)window.location.href=r.url;else if(r.ok)window.location.reload();else{bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();alert('Import 실패 (HTTP '+r.status+')');}})
+                    .then(function(r){
+                        console.log('[Import] response:', r.status, r.redirected, r.url);
+                        if(r.redirected) {
+                            window.location.href = r.url;
+                        } else {
+                            return r.text().then(function(html) {
+                                bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();
+                                var match = html.match(/class="alert alert-danger"[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/);
+                                var msg = match ? match[1] : 'Import에 실패했습니다.';
+                                alert(msg);
+                            });
+                        }
+                    })
                     .catch(function(e){ console.error('[Import] fetch error:', e); bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();alert('Import 실패: '+e);});
             } catch(e) {
                 console.error('[Import] JS error:', e);

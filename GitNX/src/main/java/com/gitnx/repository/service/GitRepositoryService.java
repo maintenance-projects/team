@@ -59,11 +59,24 @@ public class GitRepositoryService {
     public GitRepository create(String ownerUsername, CreateRepositoryRequest request) {
         User owner = userService.getByUsername(ownerUsername);
 
-        if (repoJpaRepository.existsByOwnerAndName(owner, request.getName())) {
-            throw new IllegalArgumentException("Repository already exists: " + request.getName());
+        // Organization 단위로 중복 체크
+        if (request.getOrganizationId() != null) {
+            if (repoJpaRepository.existsByOwnerAndNameAndOrganizationId(owner, request.getName(), request.getOrganizationId())) {
+                throw new IllegalArgumentException("Repository already exists: " + request.getName());
+            }
+        } else {
+            if (repoJpaRepository.existsByOwnerAndNameAndOrganizationIsNull(owner, request.getName())) {
+                throw new IllegalArgumentException("Repository already exists: " + request.getName());
+            }
         }
 
-        String diskPath = jGitConfig.getBasePath() + "/" + ownerUsername + "/" + request.getName() + ".git";
+        // Organization이 있으면 디스크 경로에 org 이름 포함
+        String pathPrefix = ownerUsername;
+        if (request.getOrganizationId() != null) {
+            Organization orgForPath = orgRepository.findById(request.getOrganizationId()).orElse(null);
+            if (orgForPath != null) pathPrefix = orgForPath.getName();
+        }
+        String diskPath = jGitConfig.getBasePath() + "/" + pathPrefix + "/" + request.getName() + ".git";
 
         GitRepository repo = GitRepository.builder()
                 .name(request.getName())
@@ -106,11 +119,23 @@ public class GitRepositoryService {
             repoName = extractRepoNameFromUrl(request.getCloneUrl());
         }
 
-        if (repoJpaRepository.existsByOwnerAndName(owner, repoName)) {
-            throw new IllegalArgumentException("Repository already exists: " + repoName);
+        // Organization 단위로 중복 체크
+        if (request.getOrganizationId() != null) {
+            if (repoJpaRepository.existsByOwnerAndNameAndOrganizationId(owner, repoName, request.getOrganizationId())) {
+                throw new IllegalArgumentException("Repository already exists: " + repoName);
+            }
+        } else {
+            if (repoJpaRepository.existsByOwnerAndNameAndOrganizationIsNull(owner, repoName)) {
+                throw new IllegalArgumentException("Repository already exists: " + repoName);
+            }
         }
 
-        String diskPath = jGitConfig.getBasePath() + "/" + ownerUsername + "/" + repoName + ".git";
+        String pathPrefix = ownerUsername;
+        if (request.getOrganizationId() != null) {
+            Organization orgForPath = orgRepository.findById(request.getOrganizationId()).orElse(null);
+            if (orgForPath != null) pathPrefix = orgForPath.getName();
+        }
+        String diskPath = jGitConfig.getBasePath() + "/" + pathPrefix + "/" + repoName + ".git";
         File repoDir = new File(diskPath);
         repoDir.getParentFile().mkdirs();
 
