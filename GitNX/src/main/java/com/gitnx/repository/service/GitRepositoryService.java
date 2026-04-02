@@ -366,6 +366,32 @@ public class GitRepositoryService {
     }
 
     @Transactional
+    public void deleteAllByOrganization(Long organizationId) {
+        List<GitRepository> repos = repoJpaRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId);
+        for (GitRepository repo : repos) {
+            Long repoId = repo.getId();
+            mergeRequestJpaRepository.deleteAll(mergeRequestJpaRepository.findByGitRepositoryId(repoId, org.springframework.data.domain.Pageable.unpaged()));
+            issueJpaRepository.deleteAll(issueJpaRepository.findByGitRepositoryId(repoId, org.springframework.data.domain.Pageable.unpaged()));
+            labelJpaRepository.deleteAll(labelJpaRepository.findByGitRepositoryId(repoId));
+            milestoneJpaRepository.deleteAll(milestoneJpaRepository.findByGitRepositoryId(repoId));
+            memberJpaRepository.deleteAll(memberJpaRepository.findByGitRepositoryId(repoId));
+
+            File repoDir = new File(repo.getDiskPath());
+            if (repoDir.exists()) {
+                try {
+                    Files.walk(repoDir.toPath())
+                            .sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(File::delete);
+                } catch (IOException e) {
+                    log.warn("Failed to delete repo directory: {}", repoDir, e);
+                }
+            }
+            repoJpaRepository.delete(repo);
+        }
+    }
+
+    @Transactional
     public void delete(String owner, String name) {
         GitRepository repo = getByOwnerAndName(owner, name);
         Long repoId = repo.getId();

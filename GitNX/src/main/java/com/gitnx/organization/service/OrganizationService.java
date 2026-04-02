@@ -6,6 +6,7 @@ import com.gitnx.organization.entity.OrganizationMember;
 import com.gitnx.organization.repository.OrganizationJpaRepository;
 import com.gitnx.organization.repository.OrganizationMemberJpaRepository;
 import com.gitnx.repository.enums.RepositoryRole;
+import com.gitnx.repository.service.GitRepositoryService;
 import com.gitnx.user.entity.User;
 import com.gitnx.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class OrganizationService {
     private final OrganizationJpaRepository orgRepository;
     private final OrganizationMemberJpaRepository memberRepository;
     private final UserService userService;
+    private final GitRepositoryService gitRepositoryService;
 
     @Transactional
     public Organization create(String name, String description, String ownerUsername) {
@@ -126,6 +128,7 @@ public class OrganizationService {
         Organization org = getByName(orgName);
         verifyOwner(org, currentUsername);
 
+        gitRepositoryService.deleteAllByOrganization(org.getId());
         memberRepository.deleteAll(memberRepository.findByOrganizationIdWithUser(org.getId()));
         orgRepository.delete(org);
         log.info("Deleted organization '{}'", orgName);
