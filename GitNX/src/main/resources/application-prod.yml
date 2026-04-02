@@ -19,6 +19,7 @@ spring:
 
 server:
   port: 9090
+  forward-headers-strategy: native
 
 gitnx:
   repos:
