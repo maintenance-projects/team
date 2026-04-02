@@ -4,8 +4,12 @@
 <div th:fragment="repoNav(owner, repo, activeTab)">
     <div class="d-flex align-items-center mb-3">
         <h4 class="mb-0">
-            <a th:href="@{/{o}(o=${owner})}" th:text="${owner}" class="text-muted text-decoration-none"></a>
-            <span class="text-muted">/</span>
+            <th:block th:if="${gitRepo.organization != null}">
+                <a th:href="@{/org/{o}(o=${gitRepo.organization.name})}"
+                   th:text="${gitRepo.organization.name}"
+                   class="text-muted text-decoration-none"></a>
+                <span class="text-muted">/</span>
+            </th:block>
             <a th:href="@{/{o}/{r}(o=${owner}, r=${repo})}" th:text="${repo}" class="text-decoration-none fw-bold"></a>
         </h4>
     </div>
