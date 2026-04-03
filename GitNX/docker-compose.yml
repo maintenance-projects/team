@@ -27,7 +27,7 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: "ultari12#$"
       GITNX_REPOS_PATH: /opt/gitnx/repos
-      GITNX_CLONE_URL: http://localhost:9090/repo
+      GITNX_CLONE_URL: https://git.ultari.co.kr/repo
     ports:
       - "9090:9090"
     volumes:
