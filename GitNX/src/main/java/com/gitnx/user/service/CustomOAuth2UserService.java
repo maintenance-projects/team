@@ -2,6 +2,7 @@ package com.gitnx.user.service;
 
 import com.gitnx.user.entity.User;
 import com.gitnx.user.repository.UserRepository;
+import com.gitnx.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,11 +53,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             Map<String, Object> userAttributes = new HashMap<>(attributes);
             userAttributes.put("username", user.getUsername());
-            return new CustomOAuth2User(
-                    Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                    userAttributes,
-                    user.getUsername()
-            );
+            userAttributes.put("username", user.getUsername());
+            return UserPrincipal.create(user, userAttributes);
         }
 
         // 일반 GitHub OAuth 로그인 플로우
@@ -76,11 +74,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Map<String, Object> userAttributes = new HashMap<>(attributes);
         userAttributes.put("username", user.getUsername());
 
-        return new CustomOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                userAttributes,
-                user.getUsername()
-        );
+        userAttributes.put("username", user.getUsername());
+        return UserPrincipal.create(user, userAttributes);
     }
 
     private String getSessionAttribute(String name) {

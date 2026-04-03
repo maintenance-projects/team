@@ -37,8 +37,7 @@
                         <form method="post" action="/settings/github/unlink" style="display:inline;">
                             <input type="hidden" name="returnUrl" th:value="${linkReturnUrl}">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:12px;"
-                                    onclick="return confirm('GitHub 계정 연동을 해제하시겠습니까?')">연동 해제</button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:12px;">연동 해제</button>
                         </form>
                     </div>
                     <div id="ghAccountNotConnected" class="align-items-center justify-content-between" style="display:none;">

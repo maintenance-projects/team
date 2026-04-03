@@ -25,4 +25,16 @@ public class ApiUserController {
         List<UserSearchDto> result = userService.searchUsers(query, limit);
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me(@org.springframework.security.core.annotation.AuthenticationPrincipal com.gitnx.user.security.UserPrincipal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+            "username", principal.getUsername(),
+            "email", principal.getEmail(),
+            "displayName", principal.getDisplayName()
+        ));
+    }
 }

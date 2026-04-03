@@ -20,24 +20,64 @@
                         <a class="nav-link" th:href="@{/organizations}">Organizations</a>
                     </li>
                 </ul>
-                <ul class="navbar-nav align-items-center">
-                    <li class="nav-item" sec:authorize="isAuthenticated()">
-                        <span class="nav-link gn-username" sec:authentication="name"></span>
+                <ul class="navbar-nav align-items-center gap-2">
+                    <li class="nav-item d-flex align-items-center" sec:authorize="isAuthenticated()">
+                        <button type="button" class="btn btn-link nav-link gn-username-btn p-0 border-0" 
+                                id="profileModalTrigger" data-bs-toggle="modal" data-bs-target="#profileModal"
+                                style="text-decoration: none; color: #e6edf3; font-weight: 500;">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span sec:authentication="principal.displayName">User Name</span>
+                        </button>
                     </li>
                     <li class="nav-item" sec:authorize="isAuthenticated()">
                         <form th:action="@{/logout}" method="post" class="d-inline">
-                            <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger px-3 opacity-75">Logout</button>
                         </form>
                     </li>
                     <li class="nav-item" sec:authorize="!isAuthenticated()">
                         <a class="nav-link" th:href="@{/login}">Login</a>
                     </li>
                     <li class="nav-item" sec:authorize="!isAuthenticated()">
-                        <a class="nav-link" th:href="@{/register}">Register</a>
+                        <a class="nav-link btn btn-sm btn-primary rounded-pill px-3 py-1 text-white" th:href="@{/register}">Register</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true" sec:authorize="isAuthenticated()">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="background-color: #161b22; color: #e6edf3;">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title d-flex align-items-center" id="profileModalLabel">
+                        <i class="bi bi-person-badge me-2 text-primary"></i>
+                        내 정보
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-4">
+                    <div class="text-center mb-4">
+                        <div class="avatar-placeholder mx-auto mb-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-25 rounded-circle" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person h1 mb-0 text-primary"></i>
+                        </div>
+                        <h4 class="mb-0" id="modalDisplayName" sec:authentication="principal.displayName">Name</h4>
+                        <p class="text-muted small" id="modalUsername" sec:authentication="name">@username</p>
+                    </div>
+                    <hr class="border-secondary opacity-25">
+                    <div class="mb-3">
+                        <label class="text-muted small mb-1">Email</label>
+                        <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25 mt-1">
+                            <i class="bi bi-envelope me-2 text-muted"></i>
+                            <span id="modalEmail" sec:authentication="principal.email">user@example.com</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </header>
 </html>

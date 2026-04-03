@@ -2,6 +2,7 @@ package com.gitnx.common.config;
 
 import com.gitnx.user.entity.User;
 import com.gitnx.user.repository.UserRepository;
+import com.gitnx.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -85,11 +86,7 @@ public class WorkbenchAuthenticationProvider implements AuthenticationProvider {
         }
 
         return new UsernamePasswordAuthenticationToken(
-                new org.springframework.security.core.userdetails.User(
-                        gitnxUser.getUsername(),
-                        "",
-                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                ),
+                new UserPrincipal(gitnxUser),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );

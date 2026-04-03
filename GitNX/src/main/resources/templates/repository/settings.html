@@ -21,6 +21,36 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
+        <!-- Add Member -->
+        <div class="card mb-4 border-primary border-opacity-25 shadow-sm">
+            <div class="card-header bg-light">
+                <i class="bi bi-person-plus me-1"></i>
+                <strong>Add Member</strong>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/{o}/{r}/settings/members/add(o=${owner}, r=${repo})}" method="post" id="addMemberForm">
+                    <div class="row align-items-end g-3">
+                        <div class="col-md-6 position-relative" style="z-index: 1000;">
+                            <label class="form-label text-muted small fw-bold">Username</label>
+                            <select id="userSearchSelect" name="username" class="form-select" placeholder="Search by name or @id..." required>
+                                <option value="">유저를 검색하세요...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Role</label>
+                            <select name="role" class="form-select shadow-none">
+                                <option value="MEMBER" selected>Member</option>
+                                <option value="OWNER">Owner</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100 fw-bold">Add Member</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Current Members -->
         <div class="card">
             <div class="card-header d-flex align-items-center">

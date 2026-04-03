@@ -115,7 +115,7 @@ public class UserService {
     public List<UserSearchDto> searchUsers(String query, int limit) {
         org.springframework.data.domain.PageRequest pageRequest = org.springframework.data.domain.PageRequest.of(0, limit);
         
-        // 1. 로컬 유저 검색
+        // 1. Local Search (GitNX DB)
         List<User> localUsers;
         if (query == null || query.isBlank()) {
             localUsers = userRepository.findAll(pageRequest).getContent();
@@ -123,30 +123,31 @@ public class UserService {
             localUsers = userRepository.findByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(query, query, pageRequest);
         }
 
-        // 2. Workbench 유저 검색
-        List<WorkbenchUser> workbenchUsers = workbenchUserClient.getAllUsers();
-        
-        // 3. 결과 통합 및 DTO 변환
+        // 2. Workbench DB Search (Direct SQL)
+        List<Map<String, Object>> wbRows = List.of();
+        try {
+            String lowerQuery = "%" + (query != null ? query.toLowerCase() : "") + "%";
+            wbRows = workbenchJdbc.queryForList(
+                "SELECT user_id, user_name FROM WB_ORGANIZATION.msg_user " +
+                "WHERE LOWER(user_id) LIKE ? OR LOWER(user_name) LIKE ? LIMIT ?",
+                lowerQuery, lowerQuery, limit);
+        } catch (Exception e) {
+            log.error("[UserService] Workbench DB search failed: {}", e.getMessage());
+        }
+
+        // 3. Combine results (GitNX local users first, then Workbench-only users)
         Map<String, UserSearchDto> combined = new LinkedHashMap<>();
 
-        // 로컬 유저 먼저 채우기
         for (User u : localUsers) {
             combined.put(u.getUsername(), UserSearchDto.from(u));
         }
 
-        // Workbench 유저 추가 (중복 제외 및 필터링)
-        String lowerQuery = (query != null) ? query.toLowerCase() : "";
-        for (WorkbenchUser wb : workbenchUsers) {
-            if (combined.containsKey(wb.getUserId())) continue;
-            
-            boolean matches = lowerQuery.isEmpty() || 
-                             wb.getUserId().toLowerCase().contains(lowerQuery) || 
-                             (wb.getUserName() != null && wb.getUserName().toLowerCase().contains(lowerQuery));
-            
-            if (matches) {
-                combined.put(wb.getUserId(), UserSearchDto.builder()
-                        .username(wb.getUserId())
-                        .displayName(wb.getUserName())
+        for (Map<String, Object> row : wbRows) {
+            String userId = (String) row.get("user_id");
+            if (!combined.containsKey(userId)) {
+                combined.put(userId, UserSearchDto.builder()
+                        .username(userId)
+                        .displayName((String) row.get("user_name"))
                         .build());
                 if (combined.size() >= limit) break;
             }
