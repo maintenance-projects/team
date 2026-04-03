@@ -154,4 +154,11 @@ public class UserService {
 
         return new ArrayList<>(combined.values());
     }
+
+    @Transactional
+    public void unlinkGithub(String username) {
+        User user = getByUsername(username);
+        user.setGithubAccessToken(null);
+        userRepository.save(user);
+    }
 }

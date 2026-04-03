@@ -26,6 +26,32 @@ public class GitHubRepoController {
     private final RestTemplate restTemplate = new RestTemplate();
 
     /**
+     * 현재 연동된 GitHub 계정 정보 반환 (login, avatar_url)
+     */
+    @GetMapping("/user")
+    public ResponseEntity<String> getGithubUser(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.getByUsername(userDetails.getUsername());
+        String token = user.getGithubAccessToken();
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(404).body("{\"error\": \"GitHub token not found\"}");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        headers.set("Accept", "application/vnd.github+json");
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "https://api.github.com/user", HttpMethod.GET, entity, String.class);
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception e) {
+            log.warn("GitHub /user API 호출 실패: {}", e.getMessage());
+            return ResponseEntity.status(401).body("{\"error\": \"Invalid GitHub token\"}");
+        }
+    }
+
+    /**
      * GitHub API를 통해 현재 사용자의 레포지토리 목록 조회
      * - 개인 repo + 접근 가능한 org repo 포함
      */
