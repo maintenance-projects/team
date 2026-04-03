@@ -3,6 +3,7 @@ package com.gitnx.common.config;
 import com.gitnx.user.service.CustomOAuth2UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -78,18 +79,26 @@ public class SecurityConfig {
     /**
      * Git HTTP protocol chain - handles /repo/** requests.
      */
+    @Value("${gitnx.git.auth-required:true}")
+    private boolean gitAuthRequired;
+
     @Bean
     @Order(1)
     public SecurityFilterChain gitFilterChain(HttpSecurity http) throws Exception {
         http
             .securityMatcher(new AntPathRequestMatcher("/repo/**"))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(new AntPathRequestMatcher("/repo/**/git-receive-pack")).authenticated()
-                .requestMatchers(new GitReceivePackInfoRefsRequestMatcher()).authenticated()
-                .anyRequest().permitAll()
-            )
+            .authorizeHttpRequests(auth -> {
+                if (gitAuthRequired) {
+                    auth
+                        .requestMatchers(new AntPathRequestMatcher("/repo/**/git-receive-pack")).authenticated()
+                        .requestMatchers(new GitReceivePackInfoRefsRequestMatcher()).authenticated()
+                        .anyRequest().permitAll();
+                } else {
+                    auth.anyRequest().permitAll();
+                }
+            })
             .httpBasic(basic -> basic
-                .realmName("GitNX")
+                .realmName("GitNEO")
             )
             .authenticationManager(new ProviderManager(gitAuthenticationProvider))
             .csrf(csrf -> csrf.disable())

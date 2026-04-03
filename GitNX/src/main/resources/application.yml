@@ -49,6 +49,8 @@ gitnx:
     base-path: ${user.home}/gitnx-repos
   clone:
     http-base-url: https://git.ultari.co.kr/repo
+  git:
+    auth-required: false
 
 workbench:
   api:
