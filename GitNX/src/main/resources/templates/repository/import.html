@@ -12,50 +12,12 @@
             <div class="col-md-8 col-lg-6">
                 <h2 class="mb-4">Import a repository</h2>
 
-                <!-- GitHub 계정 연동 상태 -->
-                <div id="githubAccountSection" class="mb-3" style="display:none;">
-                    <!-- 연동됨 -->
-                    <div id="githubConnected" style="display:none;">
-                        <div class="d-flex align-items-center justify-content-between p-3 border rounded mb-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <img id="ghAvatar" src="" width="28" height="28" class="rounded-circle" alt="">
-                                <span class="fw-semibold" id="ghLogin"></span>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">연동됨</span>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <a href="/settings/github/link?returnUrl=/import" class="btn btn-sm btn-outline-secondary">계정 변경</a>
-                                <form method="post" action="/settings/github/unlink" style="display:inline;">
-                                    <input type="hidden" name="returnUrl" value="/import">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('GitHub 계정 연동을 해제하시겠습니까?')">연동 해제</button>
-                                </form>
-                            </div>
-                        </div>
-                        <div class="d-grid">
-                            <button type="button" class="btn btn-dark btn-lg" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-github me-2" viewBox="0 0 16 16" style="vertical-align: text-bottom;">
-                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-                                </svg>
-                                GitHub에서 가져오기
-                            </button>
-                        </div>
-                    </div>
-                    <!-- 미연동 -->
-                    <div id="githubNotConnected" style="display:none;">
-                        <a href="/settings/github/link?returnUrl=/import" class="btn btn-dark btn-lg w-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-github me-2" viewBox="0 0 16 16" style="vertical-align: text-bottom;">
-                                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-                            </svg>
-                            GitHub 계정 연동하기
-                        </a>
-                    </div>
-                </div>
-                <!-- 로딩 중 placeholder -->
-                <div id="githubAccountLoading" class="d-grid gap-2 mb-3">
-                    <button class="btn btn-dark btn-lg" disabled>
-                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        GitHub 연동 확인 중...
+                <div class="d-grid gap-2 mb-4">
+                    <button type="button" class="btn btn-dark btn-lg" data-bs-toggle="modal" data-bs-target="#githubRepoModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-github me-2" viewBox="0 0 16 16" style="vertical-align: text-bottom;">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                        GitHub에서 가져오기
                     </button>
                 </div>
 
@@ -124,6 +86,35 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                <!-- 연동 계정 정보 -->
+                <div class="px-3 py-2 border-bottom bg-body-secondary">
+                    <!-- 로딩 -->
+                    <div id="ghAccountLoading" class="text-muted small">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span> 계정 확인 중...
+                    </div>
+                    <!-- 연동됨 -->
+                    <div id="ghAccountConnected" class="d-flex align-items-center justify-content-between" style="display:none !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <img id="ghAvatar" src="" width="22" height="22" class="rounded-circle" alt="">
+                            <span class="fw-semibold small" id="ghLogin"></span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:11px;">연동됨</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="/settings/github/link?returnUrl=/import" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;">계정 변경</a>
+                            <form method="post" action="/settings/github/unlink" style="display:inline;">
+                                <input type="hidden" name="returnUrl" value="/import">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:12px;"
+                                        onclick="return confirm('GitHub 계정 연동을 해제하시겠습니까?')">연동 해제</button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- 미연동 -->
+                    <div id="ghAccountNotConnected" class="d-flex align-items-center justify-content-between" style="display:none !important;">
+                        <span class="text-muted small">GitHub 계정이 연동되지 않았습니다.</span>
+                        <a href="/settings/github/link?returnUrl=/import" class="btn btn-sm btn-dark py-0 px-2" style="font-size:12px;">연동하기</a>
+                    </div>
+                </div>
                 <div class="modal-body p-0">
                     <!-- 검색 -->
                     <div class="p-3 border-bottom sticky-top bg-body" style="z-index:10">
@@ -172,32 +163,28 @@
         var currentPage = 1;
         var hasMore = true;
 
-        // 페이지 로드 시 GitHub 계정 상태 확인
-        fetch('/github/user')
-            .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
-            .then(function(result) {
-                document.getElementById('githubAccountLoading').style.display = 'none';
-                document.getElementById('githubAccountSection').style.display = 'block';
-                if (result.ok && result.data.login) {
-                    document.getElementById('ghAvatar').src = result.data.avatar_url;
-                    document.getElementById('ghLogin').textContent = result.data.login;
-                    document.getElementById('githubConnected').style.display = 'block';
-                } else {
-                    document.getElementById('githubNotConnected').style.display = 'block';
-                }
-            })
-            .catch(function() {
-                document.getElementById('githubAccountLoading').style.display = 'none';
-                document.getElementById('githubAccountSection').style.display = 'block';
-                document.getElementById('githubNotConnected').style.display = 'block';
-            });
-
-        // 모달이 열릴 때 레포 목록 로드
+        // 모달 열릴 때 GitHub 계정 상태 확인
         document.getElementById('githubRepoModal').addEventListener('show.bs.modal', function () {
             if (allRepos.length === 0) {
                 currentPage = 1;
                 loadRepos();
             }
+            fetch('/github/user')
+                .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+                .then(function(result) {
+                    document.getElementById('ghAccountLoading').style.display = 'none';
+                    if (result.ok && result.data.login) {
+                        document.getElementById('ghAvatar').src = result.data.avatar_url;
+                        document.getElementById('ghLogin').textContent = result.data.login;
+                        document.getElementById('ghAccountConnected').style.display = 'flex';
+                    } else {
+                        document.getElementById('ghAccountNotConnected').style.display = 'flex';
+                    }
+                })
+                .catch(function() {
+                    document.getElementById('ghAccountLoading').style.display = 'none';
+                    document.getElementById('ghAccountNotConnected').style.display = 'flex';
+                });
         });
 
         // 검색 필터

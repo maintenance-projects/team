@@ -31,7 +31,21 @@
       "Bash(xargs grep:*)",
       "Bash(export:*)",
       "WebFetch(domain:125.131.105.208)",
-      "Bash(/dev/null:*)"
+      "Bash(/dev/null:*)",
+      "Bash(ls C:UsersrlackIdeaProjectsteamGitNX/settings.gradle*)",
+      "Bash(docker compose:*)",
+      "Bash(docker info:*)",
+      "Bash(docker version:*)",
+      "Bash(findstr ':8082 :9090')",
+      "Bash(docker start:*)",
+      "Bash(find C:/workbench/server/api-auth -name *Config*.java -o -name *Security*.java)",
+      "Bash(find C:/workbench -type f \\\\\\(-name *.sql -o -name schema* \\\\\\))",
+      "Bash(grep -r \"NOT_MATCH_USERS\\\\|EXIST_ID\" C:/workbench/server --include=*.java)",
+      "Bash(./gradlew bootRun)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "neo-mcp"
+  ]
 }

@@ -21,37 +21,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
-        <!-- Add Member -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <strong>Add Member</strong>
-            </div>
-            <div class="card-body">
-                <form th:action="@{/{o}/{r}/settings/members(o=${owner}, r=${repo})}" method="post">
-                    <div class="d-flex gap-2 align-items-end">
-                        <div class="flex-grow-1" style="position:relative; min-width:300px;">
-                            <label class="form-label small">Username</label>
-                            <input type="text" id="userSearchInput" class="form-control form-control-sm"
-                                   placeholder="Search by ID or name..." autocomplete="off"
-                                   oninput="searchUsers(this.value)" onfocus="searchUsers(this.value)">
-                            <input type="hidden" name="username" id="selectedUsername">
-                            <div id="userDropdown" class="dropdown-menu w-100" style="display:none; max-height:250px; overflow-y:auto;"></div>
-                        </div>
-                        <div>
-                            <label class="form-label small">Role</label>
-                            <select name="role" class="form-select form-select-sm">
-                                <option value="MEMBER" selected>Member</option>
-                                <option value="OWNER">Owner</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button type="submit" class="btn btn-success btn-sm">Add Member</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Current Members -->
         <div class="card">
             <div class="card-header d-flex align-items-center">
@@ -112,66 +81,6 @@
         </div>
     </div>
 
-    <script>
-        var searchTimer = null;
-
-        function searchUsers(query) {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(function () {
-                fetch('/settings/users/search?q=' + encodeURIComponent(query))
-                    .then(function (r) { return r.json(); })
-                    .then(function (users) { renderDropdown(users); })
-                    .catch(function () { hideDropdown(); });
-            }, 200);
-        }
-
-        function renderDropdown(users) {
-            var dd = document.getElementById('userDropdown');
-            dd.innerHTML = '';
-            if (users.length === 0) {
-                dd.innerHTML = '<div class="dropdown-item text-muted">No users found</div>';
-                dd.style.display = 'block';
-                return;
-            }
-            users.forEach(function (u) {
-                var item = document.createElement('a');
-                item.href = '#';
-                item.className = 'dropdown-item py-2';
-                item.innerHTML = '<strong>' + escapeHtml(u.user_id) + '</strong>' +
-                    (u.user_name ? '<small class="text-muted ms-2">' + escapeHtml(u.user_name) + '</small>' : '') +
-                    (u.email ? '<small class="text-muted ms-2">' + escapeHtml(u.email) + '</small>' : '');
-                item.onclick = function (e) {
-                    e.preventDefault();
-                    selectUser(u);
-                };
-                dd.appendChild(item);
-            });
-            dd.style.display = 'block';
-        }
-
-        function selectUser(u) {
-            document.getElementById('userSearchInput').value = u.user_id + (u.user_name ? ' (' + u.user_name + ')' : '');
-            document.getElementById('selectedUsername').value = u.user_id;
-            hideDropdown();
-        }
-
-        function hideDropdown() {
-            document.getElementById('userDropdown').style.display = 'none';
-        }
-
-        // 외부 클릭 시 드롭다운 닫기
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('#userSearchInput') && !e.target.closest('#userDropdown')) {
-                hideDropdown();
-            }
-        });
-
-        function escapeHtml(text) {
-            var div = document.createElement('div');
-            div.appendChild(document.createTextNode(text));
-            return div.innerHTML;
-        }
-    </script>
 </div>
 </body>
 </html>
