@@ -28,7 +28,7 @@
                     <div id="ghAccountLoading" class="text-muted small">
                         <span class="spinner-border spinner-border-sm me-1" role="status"></span> 계정 확인 중...
                     </div>
-                    <div id="ghAccountConnected" class="d-flex align-items-center justify-content-between" style="display:none !important;">
+                    <div id="ghAccountConnected" class="align-items-center justify-content-between" style="display:none;">
                         <div class="d-flex align-items-center gap-2">
                             <img id="ghAvatar" src="" width="22" height="22" class="rounded-circle" alt="">
                             <span class="fw-semibold small" id="ghLogin"></span>
@@ -45,7 +45,7 @@
                             </form>
                         </div>
                     </div>
-                    <div id="ghAccountNotConnected" class="d-flex align-items-center justify-content-between" style="display:none !important;">
+                    <div id="ghAccountNotConnected" class="align-items-center justify-content-between" style="display:none;">
                         <span class="text-muted small">GitHub 계정이 연동되지 않았습니다.</span>
                         <a th:href="@{/settings/github/link(returnUrl=${linkReturnUrl})}"
                            class="btn btn-sm btn-dark py-0 px-2" style="font-size:12px;">연동하기</a>
