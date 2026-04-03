@@ -3,10 +3,9 @@
 <!--
     GitHub Import Modal Fragment
     Parameters:
-    - modalTitle: 모달 제목 (기본: "Import from GitHub")
     - orgId: Organization ID (빈 값이면 Personal)
-    - linkReturnUrl: GitHub 연동 후 돌아올 URL
-    - organizations: Organization 목록 (footer에 선택 드롭다운, null이면 숨김)
+    - linkReturnUrl: GitHub 연동/해제 후 돌아올 URL
+    - organizations: Organization 목록 (footer 드롭다운, null이면 숨김)
     - showOrgSelect: Organization 선택 드롭다운 표시 여부
 -->
 <div th:fragment="githubImportModal(orgId, linkReturnUrl, organizations, showOrgSelect)">
@@ -23,6 +22,34 @@
                         Import from GitHub
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <!-- GitHub 계정 정보 -->
+                <div class="px-3 py-2 border-bottom bg-body-secondary">
+                    <div id="ghAccountLoading" class="text-muted small">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span> 계정 확인 중...
+                    </div>
+                    <div id="ghAccountConnected" class="d-flex align-items-center justify-content-between" style="display:none !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <img id="ghAvatar" src="" width="22" height="22" class="rounded-circle" alt="">
+                            <span class="fw-semibold small" id="ghLogin"></span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:11px;">연동됨</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a th:href="@{/settings/github/link(returnUrl=${linkReturnUrl})}"
+                               class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;">계정 변경</a>
+                            <form method="post" action="/settings/github/unlink" style="display:inline;">
+                                <input type="hidden" name="returnUrl" th:value="${linkReturnUrl}">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:12px;"
+                                        onclick="return confirm('GitHub 계정 연동을 해제하시겠습니까?')">연동 해제</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="ghAccountNotConnected" class="d-flex align-items-center justify-content-between" style="display:none !important;">
+                        <span class="text-muted small">GitHub 계정이 연동되지 않았습니다.</span>
+                        <a th:href="@{/settings/github/link(returnUrl=${linkReturnUrl})}"
+                           class="btn btn-sm btn-dark py-0 px-2" style="font-size:12px;">연동하기</a>
+                    </div>
                 </div>
                 <div class="modal-body p-0">
                     <div class="p-3 border-bottom sticky-top bg-body" style="z-index:10">
@@ -52,7 +79,8 @@
                     </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
-                    <div class="d-flex align-items-center gap-2" th:if="${showOrgSelect and organizations != null and !organizations.isEmpty()}">
+                    <div th:if="${showOrgSelect and organizations != null and !organizations.isEmpty()}"
+                         class="d-flex align-items-center gap-2">
                         <label class="small text-muted mb-0">Organization:</label>
                         <select id="importOrgSelect" class="form-select form-select-sm" style="width:auto;">
                             <option value="">Personal</option>
@@ -61,7 +89,7 @@
                         </select>
                     </div>
                     <div th:unless="${showOrgSelect and organizations != null and !organizations.isEmpty()}"></div>
-                    <a th:href="@{/import}" class="btn btn-outline-secondary btn-sm">URL 직접 입력</a>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
                 </div>
             </div>
         </div>
@@ -90,7 +118,30 @@
 
         document.getElementById('githubRepoModal').addEventListener('show.bs.modal', function () {
             currentPage = 1; allRepos = []; loadRepos();
+
+            // 계정 정보 초기화 후 조회
+            document.getElementById('ghAccountLoading').style.display = 'block';
+            document.getElementById('ghAccountConnected').style.display = 'none';
+            document.getElementById('ghAccountNotConnected').style.display = 'none';
+
+            fetch('/github/user')
+                .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+                .then(function(result) {
+                    document.getElementById('ghAccountLoading').style.display = 'none';
+                    if (result.ok && result.data.login) {
+                        document.getElementById('ghAvatar').src = result.data.avatar_url;
+                        document.getElementById('ghLogin').textContent = result.data.login;
+                        document.getElementById('ghAccountConnected').style.display = 'flex';
+                    } else {
+                        document.getElementById('ghAccountNotConnected').style.display = 'flex';
+                    }
+                })
+                .catch(function() {
+                    document.getElementById('ghAccountLoading').style.display = 'none';
+                    document.getElementById('ghAccountNotConnected').style.display = 'flex';
+                });
         });
+
         document.getElementById('ghSearchInput').addEventListener('input', function () {
             var q = this.value.toLowerCase();
             renderRepos(allRepos.filter(function (r) {
@@ -111,7 +162,7 @@
                 .then(function (res) {
                     if (res.status === 400) throw { noToken: true };
                     if (!res.ok) throw new Error('Failed to fetch');
-                    hasMore = res.headers.get('X-GitHub-Link') && res.headers.get('X-GitHub-Link').includes('rel="next"');
+                    hasMore = (res.headers.get('X-GitHub-Link') || '').includes('rel="next"');
                     return res.json();
                 })
                 .then(function (repos) {
@@ -131,7 +182,7 @@
                         document.getElementById('ghErrorMsg').textContent = 'GitHub 계정이 연동되어 있지 않습니다.';
                         document.getElementById('ghLinkBtn').style.display = 'block';
                     } else {
-                        document.getElementById('ghErrorMsg').textContent = 'GitHub 레포지토리를 불러올 수 없습니다: ' + (err.message || '');
+                        document.getElementById('ghErrorMsg').textContent = '불러올 수 없습니다: ' + (err.message || '');
                         document.getElementById('ghLinkBtn').style.display = 'none';
                     }
                 });
@@ -145,112 +196,99 @@
         function renderRepos(repos) {
             var list = document.getElementById('ghRepoList');
             list.innerHTML = '';
-            if (repos.length === 0) {
+            if (!repos.length) {
                 list.innerHTML = '<div class="text-center py-4 text-muted">레포지토리를 찾을 수 없습니다</div>';
                 return;
             }
-            var groups = {}, personalOwner = null;
+            var groups = {}, po = null;
             repos.forEach(function (r) {
-                var ol = r.owner.login, ot = r.owner.type;
-                if (!groups[ol]) groups[ol] = { login: ol, avatar: r.owner.avatar_url, type: ot, repos: [] };
-                groups[ol].repos.push(r);
-                if (ot === 'User') personalOwner = ol;
+                var o = r.owner.login, t = r.owner.type;
+                if (!groups[o]) groups[o] = { login: o, avatar: r.owner.avatar_url, type: t, repos: [] };
+                groups[o].repos.push(r);
+                if (t === 'User') po = o;
             });
-            var sortedKeys = Object.keys(groups).sort(function (a, b) {
-                if (a === personalOwner) return -1;
-                if (b === personalOwner) return 1;
-                return a.toLowerCase().localeCompare(b.toLowerCase());
-            });
-            sortedKeys.forEach(function (ownerLogin) {
-                var group = groups[ownerLogin];
-                var isPersonal = group.type === 'User';
-                var header = document.createElement('div');
-                header.className = 'list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center';
-                header.style.cursor = 'pointer';
-                header.style.position = 'sticky';
-                header.style.top = '52px';
-                header.style.zIndex = '5';
-                header.onclick = function () {
-                    var items = list.querySelectorAll('[data-repo-owner="' + ownerLogin + '"]');
-                    var chevron = header.querySelector('.gh-chevron');
-                    var collapsed = items[0] && items[0].style.display === 'none';
-                    items.forEach(function (el) { el.style.display = collapsed ? '' : 'none'; });
-                    chevron.textContent = collapsed ? '\u25BE' : '\u25B8';
+            Object.keys(groups).sort(function (a, b) {
+                if (a === po) return -1;
+                if (b === po) return 1;
+                return a.localeCompare(b);
+            }).forEach(function (ol) {
+                var g = groups[ol], ip = g.type === 'User';
+                var h = document.createElement('div');
+                h.className = 'list-group-item bg-body-secondary py-2 px-3 d-flex align-items-center';
+                h.style.cssText = 'cursor:pointer;position:sticky;top:52px;z-index:5;';
+                h.onclick = function () {
+                    var its = list.querySelectorAll('[data-ro="' + ol + '"]');
+                    var ch = h.querySelector('.chv');
+                    var c = its[0] && its[0].style.display === 'none';
+                    its.forEach(function (e) { e.style.display = c ? '' : 'none'; });
+                    ch.textContent = c ? '\u25BE' : '\u25B8';
                 };
-                header.innerHTML = '<span class="gh-chevron me-2" style="font-size:12px;width:12px;display:inline-block">\u25BE</span>' +
-                    '<img src="' + group.avatar + '" width="22" height="22" class="rounded-circle me-2" alt="">' +
-                    '<strong>' + escapeHtml(isPersonal ? 'Personal' : ownerLogin) + '</strong>' +
-                    '<span class="badge bg-secondary ms-2">' + group.repos.length + '</span>';
-                list.appendChild(header);
-
-                group.repos.forEach(function (repo) {
-                    var item = document.createElement('a');
-                    item.href = '#';
-                    item.className = 'list-group-item list-group-item-action py-2 ps-5';
-                    item.setAttribute('data-repo-owner', ownerLogin);
-                    item.onclick = function (e) { e.preventDefault(); selectRepo(repo); };
-                    var description = repo.description ? '<div class="text-muted small text-truncate">' + escapeHtml(repo.description) + '</div>' : '';
-                    var language = repo.language ? '<span class="badge bg-light text-dark me-1" style="font-size:10px">' + repo.language + '</span>' : '';
-                    var updatedAt = repo.updated_at ? '<small class="text-muted" style="font-size:11px">' + new Date(repo.updated_at).toLocaleDateString() + '</small>' : '';
-                    item.innerHTML = '<div class="d-flex justify-content-between align-items-center">' +
-                        '<div class="me-2" style="min-width:0"><div class="d-flex align-items-center"><span>' + escapeHtml(repo.name) + '</span></div>' +
-                        description + '<div class="mt-1">' + language + updatedAt + '</div></div>' +
+                h.innerHTML = '<span class="chv me-2" style="font-size:12px;width:12px;display:inline-block">\u25BE</span>' +
+                    '<img src="' + g.avatar + '" width="22" height="22" class="rounded-circle me-2" alt="">' +
+                    '<strong>' + esc(ip ? 'Personal' : ol) + '</strong>' +
+                    '<span class="badge bg-secondary ms-2">' + g.repos.length + '</span>';
+                list.appendChild(h);
+                g.repos.forEach(function (repo) {
+                    var it = document.createElement('a');
+                    it.href = '#';
+                    it.className = 'list-group-item list-group-item-action py-2 ps-5';
+                    it.setAttribute('data-ro', ol);
+                    it.onclick = function (e) { e.preventDefault(); selectRepo(repo); };
+                    var desc = repo.description ? '<div class="text-muted small text-truncate">' + esc(repo.description) + '</div>' : '';
+                    var lang = repo.language ? '<span class="badge bg-light text-dark me-1" style="font-size:10px">' + repo.language + '</span>' : '';
+                    var upd = repo.updated_at ? '<small class="text-muted" style="font-size:11px">' + new Date(repo.updated_at).toLocaleDateString() + '</small>' : '';
+                    it.innerHTML = '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div class="me-2" style="min-width:0"><span>' + esc(repo.name) + '</span>' + desc +
+                        '<div class="mt-1">' + lang + upd + '</div></div>' +
                         '<button class="btn btn-sm btn-outline-success flex-shrink-0">Import</button></div>';
-                    list.appendChild(item);
+                    list.appendChild(it);
                 });
             });
         }
 
         function selectRepo(repo) {
-            var ghModal = bootstrap.Modal.getInstance(document.getElementById('githubRepoModal'));
-            ghModal.hide();
-            document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
-            var importingModal = new bootstrap.Modal(document.getElementById('importingModal'));
-            importingModal.show();
+            try {
+                bootstrap.Modal.getInstance(document.getElementById('githubRepoModal')).hide();
+                document.getElementById('importingRepoName').textContent = repo.full_name + ' importing...';
+                new bootstrap.Modal(document.getElementById('importingModal')).show();
 
-            function getCsrfToken() {
-                // 1) 쿠키에서 읽기
-                var match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
-                if (match) return decodeURIComponent(match[2]);
-                // 2) form hidden input에서 읽기
-                var input = document.querySelector('input[name="_csrf"]');
-                if (input) return input.value;
-                return '';
+                var csrfInput = document.querySelector('input[name="_csrf"]');
+                var csrfToken = csrfInput ? csrfInput.value : '';
+                if (!csrfToken) { var m = document.cookie.match(/(^| )XSRF-TOKEN=([^;]+)/); if (m) csrfToken = decodeURIComponent(m[2]); }
+
+                var orgSelect = document.getElementById('importOrgSelect');
+                var fixedVal = document.getElementById('fixedOrgIdValue').value;
+                var orgId = fixedVal || (orgSelect ? orgSelect.value : '');
+
+                var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
+                    + '&name=' + encodeURIComponent(repo.name)
+                    + '&description=' + encodeURIComponent(repo.description || '')
+                    + (orgId ? '&organizationId=' + encodeURIComponent(orgId) : '')
+                    + '&_csrf=' + encodeURIComponent(csrfToken);
+
+                fetch('/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': csrfToken },
+                    body: body,
+                    redirect: 'follow'
+                }).then(function (r) {
+                    if (r.redirected) { window.location.href = r.url; }
+                    else { r.text().then(function (html) {
+                        bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();
+                        var tmp = document.createElement('div'); tmp.innerHTML = html;
+                        var el = tmp.querySelector('.alert-danger span') || tmp.querySelector('.alert-danger');
+                        alert(el ? el.textContent.trim() : 'Import에 실패했습니다.');
+                    }); }
+                }).catch(function (e) {
+                    bootstrap.Modal.getInstance(document.getElementById('importingModal')).hide();
+                    alert('Import 실패: ' + e);
+                });
+            } catch (e) {
+                alert('Import JS 에러: ' + e.message);
             }
-
-            var csrfToken = getCsrfToken();
-            var orgSelect = document.getElementById('importOrgSelect');
-            var fixedVal = document.getElementById('fixedOrgIdValue').value;
-            var orgId = fixedVal || (orgSelect ? orgSelect.value : '');
-            var body = 'cloneUrl=' + encodeURIComponent(repo.clone_url)
-                + '&name=' + encodeURIComponent(repo.name)
-                + '&description=' + encodeURIComponent(repo.description || '')
-                + (orgId ? '&organizationId=' + encodeURIComponent(orgId) : '')
-                + '&_csrf=' + encodeURIComponent(csrfToken);
-
-            fetch('/import', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-XSRF-TOKEN': csrfToken
-                },
-                body: body,
-                redirect: 'follow'
-            }).then(function (res) {
-                if (res.redirected) window.location.href = res.url;
-                else if (res.ok) window.location.reload();
-                else { importingModal.hide(); alert('Import 실패 (HTTP ' + res.status + ')'); }
-            }).catch(function () {
-                importingModal.hide();
-                alert('Import에 실패했습니다. 다시 시도해주세요.');
-            });
         }
 
-        function escapeHtml(text) {
-            var div = document.createElement('div');
-            div.appendChild(document.createTextNode(text));
-            return div.innerHTML;
-        }
+        function esc(t) { var d = document.createElement('div'); d.appendChild(document.createTextNode(t)); return d.innerHTML; }
     </script>
 </div>
 </html>
