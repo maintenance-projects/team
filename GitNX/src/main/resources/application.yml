@@ -54,9 +54,9 @@ gitnx:
 
 workbench:
   api:
-    base-url: http://10.0.0.177/api1
+    base-url: http://10.0.0.11/api1
   datasource:
-    url: jdbc:mariadb://10.0.0.177:7706/WB_ORGANIZATION
+    url: jdbc:mariadb://10.0.0.11:7706/WB_ORGANIZATION
     username: root
     password: "ultari12#$"
     driver-class-name: org.mariadb.jdbc.Driver
