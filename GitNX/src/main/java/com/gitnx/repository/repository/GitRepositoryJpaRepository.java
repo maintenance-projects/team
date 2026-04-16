@@ -32,4 +32,7 @@ public interface GitRepositoryJpaRepository extends JpaRepository<GitRepository,
     List<GitRepository> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId);
 
     List<GitRepository> findByOwnerUsernameAndOrganizationIsNullOrderByCreatedAtDesc(String ownerUsername);
+
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM GitRepository r JOIN FETCH r.owner WHERE r.name = :name AND r.organization.name = :orgName")
+    java.util.Optional<GitRepository> findByOrganizationNameAndName(String orgName, String name);
 }

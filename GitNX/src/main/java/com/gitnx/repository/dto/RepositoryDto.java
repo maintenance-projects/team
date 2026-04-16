@@ -18,6 +18,7 @@ public class RepositoryDto {
     private String defaultBranch;
     private String ownerUsername;
     private Long organizationId;
+    private String organizationName;
     private LocalDateTime createdAt;
 
     public static RepositoryDto from(GitRepository repo) {
@@ -29,6 +30,7 @@ public class RepositoryDto {
                 .defaultBranch(repo.getDefaultBranch())
                 .ownerUsername(repo.getOwner().getUsername())
                 .organizationId(repo.getOrganization() != null ? repo.getOrganization().getId() : null)
+                .organizationName(repo.getOrganization() != null ? repo.getOrganization().getName() : null)
                 .createdAt(repo.getCreatedAt())
                 .build();
     }

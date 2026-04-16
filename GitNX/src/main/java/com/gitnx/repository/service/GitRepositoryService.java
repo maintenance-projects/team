@@ -119,15 +119,25 @@ public class GitRepositoryService {
             repoName = extractRepoNameFromUrl(request.getCloneUrl());
         }
 
-        // Organization 단위로 중복 체크
+        // Organization 단위로 중복 체크 (DB에 있지만 디스크 유실 시 재클론)
+        GitRepository existingRepo = null;
         if (request.getOrganizationId() != null) {
-            if (repoJpaRepository.existsByOwnerAndNameAndOrganizationId(owner, repoName, request.getOrganizationId())) {
-                throw new IllegalArgumentException("Repository already exists: " + repoName);
-            }
+            existingRepo = repoJpaRepository.findByOwnerUsernameAndNameAndOrganizationId(
+                    ownerUsername, repoName, request.getOrganizationId()).orElse(null);
         } else {
-            if (repoJpaRepository.existsByOwnerAndNameAndOrganizationIsNull(owner, repoName)) {
+            existingRepo = repoJpaRepository.findByOwnerUsernameAndNameAndOrganizationIsNull(
+                    ownerUsername, repoName).orElse(null);
+        }
+
+        if (existingRepo != null) {
+            File existingDiskDir = new File(existingRepo.getDiskPath());
+            if (existingDiskDir.exists()) {
                 throw new IllegalArgumentException("Repository already exists: " + repoName);
             }
+            // DB에는 있지만 디스크가 없음 → 파일만 다시 clone
+            log.info("Repo {} exists in DB but missing on disk. Re-cloning to {}", repoName, existingRepo.getDiskPath());
+            cloneBareTo(existingRepo.getDiskPath(), request.getCloneUrl(), request.getAccessToken());
+            return existingRepo;
         }
 
         String pathPrefix = ownerUsername;
@@ -144,43 +154,12 @@ public class GitRepositoryService {
         repoDir.getParentFile().mkdirs();
 
         try {
-            String cloneUrl = request.getCloneUrl();
-            String token = request.getAccessToken();
-            log.debug("Import - cloneUrl: {}, hasToken: {}",
-                    cloneUrl, token != null && !token.isBlank());
-
-            // 시스템 git 명령어로 clone (JGit은 GitHub private repo 인증 처리에 한계가 있음)
-            // GitHub는 미인증 요청에 404를 반환하여 JGit의 CredentialsProvider가 동작하지 않음
-            String authenticatedUrl = cloneUrl;
-            if (token != null && !token.isBlank() && cloneUrl.startsWith("https://")) {
-                authenticatedUrl = "https://x-access-token:" + token
-                        + "@" + cloneUrl.substring("https://".length());
-            }
-
-            ProcessBuilder pb = new ProcessBuilder(
-                    "git", "clone", "--bare", authenticatedUrl, diskPath);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            String output = new String(process.getInputStream().readAllBytes());
-            int exitCode = process.waitFor();
-
-            if (exitCode != 0) {
-                log.error("git clone failed (exit {}): {}", exitCode, output);
-                throw new GitOperationException(
-                        "Failed to clone repository from " + cloneUrl + ": " + output);
-            }
-
-            log.info("Successfully cloned repository from {} to {}", cloneUrl, diskPath);
-
+            cloneBareTo(diskPath, request.getCloneUrl(), request.getAccessToken());
         } catch (GitOperationException e) {
-            // Clean up on failure
             cleanUpDirectory(repoDir);
             throw e;
         } catch (Exception e) {
-            // Clean up on failure
             cleanUpDirectory(repoDir);
-            log.error("Failed to clone repository from {}: {}", request.getCloneUrl(), e.getMessage(), e);
             throw new GitOperationException("Failed to clone repository from " + request.getCloneUrl(), e);
         }
 
@@ -219,6 +198,40 @@ public class GitRepositoryService {
         return repoJpaRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId).stream()
                 .map(RepositoryDto::from)
                 .toList();
+    }
+
+    private void cloneBareTo(String diskPath, String cloneUrl, String token) {
+        File repoDir = new File(diskPath);
+        repoDir.getParentFile().mkdirs();
+
+        log.debug("Import - cloneUrl: {}, hasToken: {}", cloneUrl, token != null && !token.isBlank());
+
+        // 시스템 git 명령어로 clone (JGit은 GitHub private repo 인증 처리에 한계가 있음)
+        String authenticatedUrl = cloneUrl;
+        if (token != null && !token.isBlank() && cloneUrl.startsWith("https://")) {
+            authenticatedUrl = "https://x-access-token:" + token
+                    + "@" + cloneUrl.substring("https://".length());
+        }
+
+        try {
+            ProcessBuilder pb = new ProcessBuilder("git", "clone", "--bare", authenticatedUrl, diskPath);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            String output = new String(process.getInputStream().readAllBytes());
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0) {
+                log.error("git clone failed (exit {}): {}", exitCode, output);
+                throw new GitOperationException("Failed to clone repository from " + cloneUrl + ": " + output);
+            }
+            log.info("Successfully cloned repository from {} to {}", cloneUrl, diskPath);
+        } catch (GitOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to clone repository from {}: {}", cloneUrl, e.getMessage(), e);
+            throw new GitOperationException("Failed to clone repository from " + cloneUrl, e);
+        }
     }
 
     private void cleanUpDirectory(File dir) {
@@ -352,9 +365,10 @@ public class GitRepositoryService {
     }
 
     public GitRepository getByOwnerAndName(String owner, String name) {
-        // Personal 레포 우선, 없으면 아무거나 (Organization 포함)
+        // Personal 레포 우선, 없으면 owner username으로 검색, 마지막으로 org 이름으로 검색
         return repoJpaRepository.findByOwnerUsernameAndNameAndOrganizationIsNull(owner, name)
                 .or(() -> repoJpaRepository.findByOwnerUsernameAndName(owner, name).stream().findFirst())
+                .or(() -> repoJpaRepository.findByOrganizationNameAndName(owner, name))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Repository not found: " + owner + "/" + name));
     }
