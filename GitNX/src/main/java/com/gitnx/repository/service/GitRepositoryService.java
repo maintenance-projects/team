@@ -339,6 +339,12 @@ public class GitRepositoryService {
                 .toList();
     }
 
+    public List<RepositoryDto> listPersonalByOwner(String username) {
+        return repoJpaRepository.findByOwnerUsernameAndOrganizationIsNullOrderByCreatedAtDesc(username).stream()
+                .map(RepositoryDto::from)
+                .toList();
+    }
+
     public List<RepositoryDto> listAccessible(String username) {
         return memberJpaRepository.findByUserUsernameWithRepository(username).stream()
                 .map(member -> RepositoryDto.from(member.getGitRepository()))

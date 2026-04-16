@@ -32,6 +32,11 @@ public class ApiRepositoryController {
         return ResponseEntity.ok(gitRepositoryService.listAll());
     }
 
+    @GetMapping("/personal")
+    public ResponseEntity<List<RepositoryDto>> listPersonalRepositories(@RequestParam String username) {
+        return ResponseEntity.ok(gitRepositoryService.listPersonalByOwner(username));
+    }
+
     @GetMapping("/{owner}/{repo}")
     public ResponseEntity<RepositoryDto> getRepository(
             @PathVariable String owner,

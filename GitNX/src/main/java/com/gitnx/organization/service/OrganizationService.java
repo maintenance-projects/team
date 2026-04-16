@@ -55,7 +55,7 @@ public class OrganizationService {
     }
 
     public List<Organization> listAll() {
-        return orgRepository.findAll();
+        return orgRepository.findAllWithOwner();
     }
 
     public Organization getByName(String name) {

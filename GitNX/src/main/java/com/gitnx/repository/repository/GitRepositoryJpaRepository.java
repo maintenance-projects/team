@@ -30,4 +30,6 @@ public interface GitRepositoryJpaRepository extends JpaRepository<GitRepository,
     Optional<GitRepository> findFirstByName(String name);
 
     List<GitRepository> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId);
+
+    List<GitRepository> findByOwnerUsernameAndOrganizationIsNullOrderByCreatedAtDesc(String ownerUsername);
 }
