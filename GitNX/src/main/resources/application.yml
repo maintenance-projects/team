@@ -4,7 +4,7 @@ spring:
     name: gitnx
 
   datasource:
-    url: jdbc:postgresql://125.131.105.208:5432/gitnx
+    url: jdbc:postgresql://localhost:5432/gitnx
     username: root
     password: "ultari12#$"
     driver-class-name: org.postgresql.Driver
