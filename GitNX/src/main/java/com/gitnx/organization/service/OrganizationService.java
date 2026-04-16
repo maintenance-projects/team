@@ -54,6 +54,10 @@ public class OrganizationService {
         return org;
     }
 
+    public List<Organization> listAll() {
+        return orgRepository.findAll();
+    }
+
     public Organization getByName(String name) {
         return orgRepository.findByName(name)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + name));
